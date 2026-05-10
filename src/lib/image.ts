@@ -9,16 +9,25 @@ function isHeic(file: File): boolean {
 }
 
 // HEIC는 PC 브라우저(Chrome/Firefox/Edge)에서 디코딩이 안 되므로
-// 업로드 시점에 JPEG로 변환. heic2any(libheif-js wasm)는 ~1MB라 동적 import.
+// 업로드 시점에 JPEG로 변환. heic-to는 더 최신 libheif를 따라가므로
+// 최근 iPhone HEIC(iOS 18 계열) 대응이 heic2any보다 안정적이다.
 async function ensureDecodableBlob(file: File): Promise<Blob> {
   if (!isHeic(file)) return file;
-  const { default: heic2any } = await import("heic2any");
-  const out = await heic2any({
-    blob: file,
-    toType: "image/jpeg",
-    quality: 0.92,
-  });
-  return Array.isArray(out) ? out[0] : out;
+  try {
+    const { heicTo } = await import("heic-to");
+    const out = await heicTo({
+      blob: file,
+      type: "image/jpeg",
+      quality: 0.92,
+    });
+    if (out instanceof Blob) return out;
+    throw new Error("HEIC conversion returned unexpected result");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `HEIC 파일을 브라우저에서 변환하지 못했습니다. 최신 iPhone HEIC이거나 현재 변환기가 지원하지 않는 포맷일 수 있습니다. (${message})`,
+    );
+  }
 }
 
 export async function resizeToDataUrl(file: File): Promise<string> {

@@ -169,7 +169,10 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
     onClose();
   };
 
-  const handleShowHint = () => setHintVisible(true);
+  const handleResetTransform = () => {
+    setHintVisible(false);
+    setT(IDENTITY_TRANSFORM);
+  };
 
   if (!cell.imageDataUrl) {
     onClose();
@@ -239,7 +242,7 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-ink/15 bg-paper/90 px-3 py-2 shadow-xl backdrop-blur">
-          <EditButton onClick={handleShowHint} label="?" sub="도움말" />
+          <EditButton onClick={handleResetTransform} label="초기화" sub="위치 · 확대" />
           <Divider />
           <EditButton onClick={handleReplaceClick} label="재업로드" sub="사진 교체" />
           <Divider />
