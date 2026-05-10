@@ -107,7 +107,7 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
       />
       <div
         ref={cellRef}
-        className="absolute z-30 overflow-hidden bg-paper outline outline-2 outline-pencil-red"
+        className="absolute z-30"
         style={{
           left: `${(col * 100) / cols}%`,
           top: `${(row * 100) / rows}%`,
@@ -116,17 +116,33 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
           touchAction: "none",
         }}
       >
+        {/* 셀 바깥으로 빠져나가는 영역을 흐리게 보여주는 고스트 레이어 */}
         <img
           src={cell.imageDataUrl}
           alt=""
+          aria-hidden="true"
           draggable={false}
-          className="absolute inset-0 h-full w-full object-cover select-none"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-25 select-none"
           style={{
             transformOrigin: "center center",
             transform: transformCss(t),
             willChange: "transform",
           }}
         />
+        {/* 실제 그리드에 들어가는(=저장되는) 선명 영역 */}
+        <div className="absolute inset-0 overflow-hidden bg-paper outline outline-2 outline-pencil-red">
+          <img
+            src={cell.imageDataUrl}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover select-none"
+            style={{
+              transformOrigin: "center center",
+              transform: transformCss(t),
+              willChange: "transform",
+            }}
+          />
+        </div>
       </div>
 
       <div

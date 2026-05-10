@@ -46,6 +46,11 @@
 ### 시각 방향 한 줄 정의
 - `색연필로 채운 손그림 그리드 콜라주 도구`
 
+### 확정 방향
+- 메인 브랜드 마크는 `ㅋㄹㅎㅌ` 손글씨 축약 로고로 간다.
+- `컬러헌트` 풀네임은 보조 워드마크 또는 OG/설명 문구에서만 사용한다.
+- 즉, 브랜드 인지 장치는 짧고 리드미컬한 `ㅋㄹㅎㅌ`, 서비스 설명은 `컬러헌트`가 맡는 이원 구조로 간다.
+
 ### 피해야 할 방향
 - 너무 테크 스타트업 같은 그라디언트 로고
 - 지나치게 플랫한 SaaS 아이콘
@@ -55,18 +60,19 @@
 ## 3. 자산 시스템 제안
 
 ### 로고
-- 1순위: 한글 워드마크 `컬러헌트`
-- 2순위: 영문 보조 워드마크 `Color Hunt`
-- 추천 구조: 손글씨 워드마크 + 3x3 그리드 모티프를 약하게 결합
-- 추천 인상: 각 글자가 색연필로 칠해진 듯 미세하게 다른 색과 흔들림을 가짐
+- 1순위: `ㅋㄹㅎㅌ` 손글씨 축약 로고
+- 2순위: 보조 텍스트 `컬러헌트`
+- 추천 구조: 네 자음을 리듬감 있게 배치한 손글씨 마크 + 약한 그리드 모티프
+- 추천 인상: 각 자음이 색연필로 빠르게 쓴 듯 조금씩 다른 기울기와 두께를 가짐
 - 배경: 투명 또는 종이색 배경 버전 둘 다 필요
+- 핵심 조건: 작은 크기에서도 네 글자가 하나의 브랜드 리듬으로 읽혀야 함
 
 ### 파비콘
-- 워드마크는 축소 시 무너지므로 심볼형이 적합
+- `ㅋㄹㅎㅌ` 전체를 그대로 넣기보다 축약 로고의 리듬을 정사각 심볼로 압축하는 편이 적합
 - 추천 심볼 우선순위:
-  1. 3x3 그리드 안에 4개 정도의 색 셀만 채운 미니 아이콘
-  2. 손그림 `C` 또는 `컬` 한 글자 + 그리드 프레임
-  3. 색연필 4획이 네모 안에 모여 있는 추상 심볼
+  1. `ㅋㄹㅎㅌ`의 네 획감을 4개의 손그린 기호처럼 배치한 심볼
+  2. 3x3 그리드 안에 네 자음의 리듬을 암시하는 미니 아이콘
+  3. `ㅋ` 또는 `ㅎ` 일부 형태를 추상화한 정사각 마크
 - 16px, 32px에서도 살아야 하므로 선 수를 줄이고 대비를 높여야 함
 
 ### OG 이미지
@@ -74,7 +80,8 @@
 - 추천 구성:
   - 종이 배경 위에 모바일 프레임 또는 콜라주 카드
   - 3x3 컬러 사진 그리드가 중심
-  - 상단 또는 좌측에 `컬러헌트` 타이틀
+  - 상단 또는 좌측에 `ㅋㄹㅎㅌ` 메인 마크
+  - 필요하면 보조 텍스트로 `컬러헌트`
   - 보조 문구는 짧게: `색을 모으고, 그리드에 담다`
 - OG는 로고 단독보다 “어떤 앱인지”를 보여주는 설명형 비주얼이어야 한다.
 
@@ -84,6 +91,7 @@
 - `logo-primary.png`: 밝은 배경용
 - `logo-primary-transparent.png`: 투명 배경
 - `logo-mark-square.png`: 심볼형 정사각
+- `logo-lockup-kor.png`: `ㅋㄹㅎㅌ` + `컬러헌트` 조합형
 - 가능하면 후속으로 SVG 재작업 예정
 
 ### 파비콘 산출물
@@ -108,7 +116,8 @@
 - 실제 앱 색상 토큰에서 크게 벗어나지 말 것
 - 텍스트가 들어가면 반드시 짧게
 - 워터마크, 랜덤 문구, 사진 같은 배경 노이즈 금지
-- 한국어 텍스트가 깨질 위험이 있으므로 로고 탐색 단계에서는 `컬러헌트`와 `Color Hunt`를 분리해서 시도하는 것이 안전
+- 메인 생성 대상은 `ㅋㄹㅎㅌ`로 좁힌다
+- 한국어 텍스트 정확도 이슈를 줄이기 위해 풀네임 `컬러헌트`는 보조 요소로만 제한한다
 
 ## 6. Image 2.0 프롬프트 초안
 
@@ -117,34 +126,34 @@
 ```text
 Use case: logo-brand
 Asset type: app logo exploration
-Primary request: create a playful but tidy brand logo for a mobile web app called Color Hunt, a social activity where people collect photos dominated by one color and arrange them into a grid collage for sharing
+Primary request: create a playful but tidy handwritten Korean consonant logo for a mobile web app called Color Hunt, using the shorthand ㅋㄹㅎㅌ as the main brand mark for a social activity where people collect photos dominated by one color and arrange them into a grid collage
 Scene/backdrop: plain paper-like off-white background
-Subject: hand-drawn wordmark "Color Hunt" with a subtle 3x3 grid motif
-Style/medium: pencil crayon, hand-lettered branding, polished editorial logo concept, vector-friendly silhouette
+Subject: hand-drawn shorthand logo "ㅋㄹㅎㅌ" with a subtle 3x3 grid motif
+Style/medium: pencil crayon, handwritten Korean consonant branding, polished editorial logo concept, vector-friendly silhouette
 Composition/framing: centered composition, logo only, generous negative space
 Lighting/mood: flat clean presentation, warm and friendly
 Color palette: off-white paper, charcoal ink, muted pencil red, orange, yellow, green, teal, blue
 Materials/textures: light paper grain, soft colored pencil fill, slightly imperfect hand-drawn outline
-Text (verbatim): "Color Hunt"
-Constraints: legible at small size, no camera icon, no glossy tech gradient, no mascot, no watermark
+Text (verbatim): "ㅋㄹㅎㅌ"
+Constraints: legible at small size, must feel rhythmic and memorable, no camera icon, no glossy tech gradient, no mascot, no watermark
 Avoid: photorealism, 3D mockup, UI screenshot, overly childish illustration
 ```
 
-### B. 한글 로고 탐색 프롬프트
+### B. 조합형 로고 프롬프트
 
 ```text
 Use case: logo-brand
-Asset type: Korean wordmark exploration
-Primary request: create a warm hand-drawn Korean logo for the app name 컬러헌트, representing collecting colors and arranging them into a social grid collage
+Asset type: Korean lockup exploration
+Primary request: create a warm hand-drawn Korean logo lockup using ㅋㄹㅎㅌ as the main shorthand mark and 컬러헌트 as a small supporting label, representing collecting colors and arranging them into a social grid collage
 Scene/backdrop: plain paper-like off-white background
-Subject: the Korean wordmark "컬러헌트" with each syllable slightly varied like colored pencil lettering
+Subject: the handwritten shorthand mark "ㅋㄹㅎㅌ" as the hero, with the supporting Korean text "컬러헌트" placed smaller underneath or beside it
 Style/medium: hand-drawn logo, colored pencil lettering, clean brand presentation, vector-friendly
-Composition/framing: centered, no extra objects, balanced spacing
+Composition/framing: centered, no extra objects, balanced spacing, strong logo hierarchy
 Lighting/mood: calm, crafty, playful, modern
 Color palette: charcoal ink with accents in muted red, orange, teal, blue, yellow
 Materials/textures: paper grain, colored pencil texture, subtle imperfect outline
-Text (verbatim): "컬러헌트"
-Constraints: keep the text readable, no decorative clutter, no watermark
+Text (verbatim): "ㅋㄹㅎㅌ" and "컬러헌트"
+Constraints: keep the shorthand dominant, keep the supporting text secondary and readable, no decorative clutter, no watermark
 Avoid: heavy shadows, glossy gradients, childish cartoon faces, camera symbols
 ```
 
@@ -153,9 +162,9 @@ Avoid: heavy shadows, glossy gradients, childish cartoon faces, camera symbols
 ```text
 Use case: logo-brand
 Asset type: favicon/app icon symbol
-Primary request: create a simple square brand symbol for Color Hunt based on a hand-drawn 3x3 grid collage and colored pencil marks
+Primary request: create a simple square brand symbol for Color Hunt derived from the handwritten shorthand logo ㅋㄹㅎㅌ, based on hand-drawn grid collage energy and colored pencil marks
 Scene/backdrop: plain off-white or transparent-style clean presentation
-Subject: a minimal square icon with a bold 3x3 grid and a few colored cells suggesting collected color photos
+Subject: a minimal square icon that abstracts the rhythm of ㅋㄹㅎㅌ into a bold hand-drawn symbol, optionally supported by a subtle 3x3 grid
 Style/medium: icon design, hand-drawn but clean, vector-friendly, high contrast
 Composition/framing: centered square icon, strong silhouette, no text
 Lighting/mood: flat and crisp
@@ -172,27 +181,27 @@ Use case: ui-mockup
 Asset type: open graph social preview image
 Primary request: create a clean open graph image for a mobile web app called Color Hunt that lets users collect same-color photos and arrange them into a social collage grid
 Scene/backdrop: warm off-white paper background with subtle grain
-Subject: a mobile-style collage card showing a 3x3 grid of color-dominant photo tiles, with the Color Hunt logo and a short Korean tagline
+Subject: a mobile-style collage card showing a 3x3 grid of color-dominant photo tiles, with the handwritten shorthand logo ㅋㄹㅎㅌ as the main brand mark and a short Korean tagline
 Style/medium: polished editorial app preview, hand-drawn accents, modern but warm
 Composition/framing: wide 1200x630 composition, hero card slightly off-center, logo area clearly readable, balanced negative space
 Lighting/mood: bright, warm, inviting, social
 Color palette: paper beige, charcoal, muted pencil red, orange, yellow, green, teal, blue
 Materials/textures: paper grain, colored pencil accents, subtle rough outline details
-Text (verbatim): "컬러헌트" and "색을 모으고, 그리드에 담다"
-Constraints: must read clearly as an app for color collage making, avoid clutter, no watermark, no fake UI chrome overload
+Text (verbatim): "ㅋㄹㅎㅌ" and "색을 모으고, 그리드에 담다"
+Constraints: must read clearly as an app for color collage making, keep the shorthand mark expressive, avoid clutter, no watermark, no fake UI chrome overload
 Avoid: dark background, futuristic gradients, stock-photo people, excessive tiny text
 ```
 
 ## 7. 실전 생성 메모
 
 ### 추천 워크플로
-- 1차는 영문 로고로 형태를 잡는다.
-- 형태가 좋으면 같은 구조로 한글 워드마크를 별도 생성한다.
+- 1차는 `ㅋㄹㅎㅌ` 단독 로고로 형태를 잡는다.
+- 형태가 좋으면 같은 구조로 `ㅋㄹㅎㅌ + 컬러헌트` 조합형을 별도 생성한다.
 - 파비콘은 로고를 그대로 축소하지 말고 심볼을 따로 만든다.
 - OG는 마지막에 확정된 로고/심볼을 참조해 톤만 맞춘다.
 
 ### 후처리 메모
-- 생성형 결과는 텍스트 정확도가 흔들릴 수 있으므로, 최종 로고는 이미지 결과를 바탕으로 SVG나 수작업 보정이 필요할 수 있다.
+- 생성형 결과는 자음 획의 균형이 흔들릴 수 있으므로, 최종 로고는 이미지 결과를 바탕으로 SVG나 수작업 보정이 필요할 수 있다.
 - favicon은 생성 이미지에서 바로 쓰기보다 리드 심볼을 선택한 뒤 벡터/정리 단계를 거치는 편이 안정적이다.
 - OG 이미지는 비트맵 그대로 써도 무방하지만, 로고만큼은 후속 보정 가능성을 열어두는 편이 좋다.
 
@@ -209,5 +218,5 @@ Avoid: dark background, futuristic gradients, stock-photo people, excessive tiny
 
 ## 9. 다음 단계
 
-- 이 문서의 프롬프트로 `로고 3안`, `파비콘 2안`, `OG 1안`을 생성한다.
+- 이 문서의 프롬프트로 `ㅋㄹㅎㅌ 로고 3안`, `파비콘 2안`, `OG 1안`을 생성한다.
 - 선택안이 나오면 앱에 연결할 실제 파일 세트와 메타 태그를 정리한다.
