@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useGesture } from "@use-gesture/react";
 import type { CellState, Layout, Transform } from "../types";
 import { LAYOUT_DIMS } from "../lib/layout-utils";
 import { IDENTITY_TRANSFORM, SCALE_BOUNDS, getTransform, transformCss } from "../lib/transform";
 import { resizeToDataUrl } from "../lib/image";
+import { isEditHintSeen, markEditHintSeen } from "../lib/storage";
+
+const HINT_AUTO_DISMISS_MS = 3500;
 
 type Props = {
   cell: CellState;
@@ -24,6 +27,34 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
   const tRef = useRef(t);
   tRef.current = t;
 
+  const [coarse, setCoarse] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
+  );
+  const [hintVisible, setHintVisible] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(pointer: coarse)");
+    const handler = (e: MediaQueryListEvent) => setCoarse(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+
+  // 첫 진입 자동 노출
+  useLayoutEffect(() => {
+    if (!isEditHintSeen()) {
+      setHintVisible(true);
+      markEditHintSeen();
+    }
+  }, []);
+
+  // 힌트 자동 dismiss 타이머
+  useEffect(() => {
+    if (!hintVisible) return;
+    const tid = window.setTimeout(() => setHintVisible(false), HINT_AUTO_DISMISS_MS);
+    return () => window.clearTimeout(tid);
+  }, [hintVisible]);
+
   useEffect(() => {
     onUpdate({ ...cell, transform: t });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -32,9 +63,11 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
   useGesture(
     {
       onPinch: ({ offset: [scale, angle] }) => {
+        setHintVisible(false);
         setT((cur) => ({ ...cur, scale, rotation: angle }));
       },
       onDrag: ({ offset: [px, py] }) => {
+        setHintVisible(false);
         const r = cellRef.current?.getBoundingClientRect();
         if (!r) return;
         setT((cur) => ({
@@ -45,6 +78,7 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
       },
       onWheel: ({ event, delta: [, dy] }) => {
         event.preventDefault();
+        setHintVisible(false);
         setT((cur) => {
           const factor = Math.exp(-dy * 0.0015);
           const next = Math.min(
@@ -92,6 +126,8 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
     onUpdate({ id: cell.id });
     onClose();
   };
+
+  const handleShowHint = () => setHintVisible(true);
 
   if (!cell.imageDataUrl) {
     onClose();
@@ -145,11 +181,17 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
         </div>
       </div>
 
+      {hintVisible && (
+        <HintToast coarse={coarse} onDismiss={() => setHintVisible(false)} />
+      )}
+
       <div
         className="pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center px-4"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-ink/15 bg-paper/90 px-3 py-2 shadow-xl backdrop-blur">
+          <EditButton onClick={handleShowHint} label="?" sub="도움말" />
+          <Divider />
           <EditButton onClick={handleReplaceClick} label="재업로드" sub="사진 교체" />
           <Divider />
           <EditButton onClick={handleDelete} label="삭제" sub="비우기" tone="warn" />
@@ -166,6 +208,34 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
         onChange={handleFile}
       />
     </>
+  );
+}
+
+function HintToast({
+  coarse,
+  onDismiss,
+}: {
+  coarse: boolean;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-4 z-40 flex justify-center px-6">
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="pointer-events-auto rounded-2xl bg-ink/85 px-5 py-2.5 text-paper shadow-lg backdrop-blur transition-opacity"
+        aria-label="도움말 닫기"
+      >
+        <div className="flex flex-col items-center gap-0.5 text-sm leading-tight">
+          <span className={coarse ? "opacity-45" : "font-bold"}>
+            드래그 = 이동 · 휠 = 확대/축소
+          </span>
+          <span className={coarse ? "font-bold" : "opacity-45"}>
+            한 손가락 = 이동 · 두 손가락 = 확대/회전
+          </span>
+        </div>
+      </button>
+    </div>
   );
 }
 

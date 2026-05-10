@@ -33,3 +33,21 @@ export function saveState(state: AppState): void {
     console.warn("[colorhunt] LocalStorage write failed:", err);
   }
 }
+
+const EDIT_HINT_KEY = "colorhunt:hint:edit-seen-v1";
+
+export function isEditHintSeen(): boolean {
+  try {
+    return localStorage.getItem(EDIT_HINT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markEditHintSeen(): void {
+  try {
+    localStorage.setItem(EDIT_HINT_KEY, "1");
+  } catch {
+    // 저장 실패해도 무시 — 다음 진입 때 다시 보여주는 게 최악의 경우
+  }
+}
