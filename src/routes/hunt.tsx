@@ -3,8 +3,9 @@ import type { AppState, CellState, GridLineMode } from "../types";
 import { applyLayoutChange, nextLayout } from "../lib/layout-utils";
 import { DEFAULT_STATE, loadState, saveState } from "../lib/storage";
 import { composeAndDownload } from "../lib/compose";
+import { resizeToDataUrl } from "../lib/image";
 import GridBoard from "../components/grid-board";
-import FloatingDock from "../components/floating-dock";
+import FloatingDock, { type AspectChoice } from "../components/floating-dock";
 import CellEditor from "../components/cell-editor";
 
 const LINE_CYCLE: Record<GridLineMode, GridLineMode> = {
@@ -38,6 +39,29 @@ export default function Hunt() {
     });
   };
 
+  const handleUpload = async (files: File[], fromIndex: number) => {
+    const dataUrls = await Promise.all(
+      files.map((f) =>
+        resizeToDataUrl(f).catch((err) => {
+          console.error("[colorhunt] image processing failed:", err);
+          return null;
+        }),
+      ),
+    );
+    setState((s) => {
+      const cells = s.cells.slice();
+      let idx = fromIndex;
+      for (const url of dataUrls) {
+        if (!url) continue;
+        while (idx < cells.length && cells[idx].imageDataUrl) idx++;
+        if (idx >= cells.length) break;
+        cells[idx] = { ...cells[idx], imageDataUrl: url, transform: undefined };
+        idx++;
+      }
+      return { ...s, cells };
+    });
+  };
+
   const handleActivateCell = (i: number) => {
     setEditingIndex(i);
   };
@@ -55,13 +79,20 @@ export default function Hunt() {
     setState((s) => ({ ...s, gridLineMode: LINE_CYCLE[s.gridLineMode] }));
   };
 
-  const handleDownload = async () => {
-    const el = frameRef.current;
-    if (!el || busy) return;
-    const rect = el.getBoundingClientRect();
+  const handleSave = async (choice: AspectChoice) => {
+    if (busy) return;
+    let aspect: { w: number; h: number };
+    if (choice === "device") {
+      const el = frameRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      aspect = { w: rect.width, h: rect.height };
+    } else {
+      aspect = choice;
+    }
     setBusy(true);
     try {
-      await composeAndDownload(state, { w: rect.width, h: rect.height });
+      await composeAndDownload(state, aspect);
     } catch (err) {
       console.error("[colorhunt] download failed:", err);
     } finally {
@@ -76,7 +107,7 @@ export default function Hunt() {
     <div ref={frameRef} className="absolute inset-0">
       <GridBoard
         state={state}
-        onChangeCell={handleChangeCell}
+        onUpload={handleUpload}
         onActivateCell={handleActivateCell}
       />
 
@@ -97,7 +128,7 @@ export default function Hunt() {
           busy={busy}
           onCycleLayout={handleCycleLayout}
           onCycleLineMode={handleCycleLineMode}
-          onDownload={handleDownload}
+          onSave={handleSave}
         />
       )}
     </div>

@@ -3,7 +3,7 @@ import { LAYOUT_DIMS } from "./layout-utils";
 import { loadImage } from "./image";
 import { getTransform } from "./transform";
 
-const TARGET_WIDTH = 1080;
+const BASE_DIM = 1080;
 const PAPER_BG = "#f6f1e3";
 
 export async function composeAndDownload(
@@ -11,8 +11,15 @@ export async function composeAndDownload(
   frameAspect: { w: number; h: number },
 ): Promise<void> {
   const { cols, rows } = LAYOUT_DIMS[state.layout];
-  const targetWidth = TARGET_WIDTH;
-  const targetHeight = Math.round((TARGET_WIDTH * frameAspect.h) / frameAspect.w);
+
+  // 짧은 변을 1080으로 맞춰 가로/세로 모두 충분한 해상도 확보
+  const isPortrait = frameAspect.h >= frameAspect.w;
+  const targetWidth = isPortrait
+    ? BASE_DIM
+    : Math.round((BASE_DIM * frameAspect.w) / frameAspect.h);
+  const targetHeight = isPortrait
+    ? Math.round((BASE_DIM * frameAspect.h) / frameAspect.w)
+    : BASE_DIM;
 
   const cellW = targetWidth / cols;
   const cellH = targetHeight / rows;

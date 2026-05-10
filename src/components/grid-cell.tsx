@@ -1,15 +1,15 @@
 import { useRef } from "react";
 import type { CellState } from "../types";
-import { resizeToDataUrl } from "../lib/image";
 import { getTransform, transformCss } from "../lib/transform";
 
 type Props = {
   cell: CellState;
-  onChange: (next: CellState) => void;
+  index: number;
+  onUpload: (files: File[], fromIndex: number) => void;
   onActivate: () => void;
 };
 
-export default function GridCell({ cell, onChange, onActivate }: Props) {
+export default function GridCell({ cell, index, onUpload, onActivate }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const filled = !!cell.imageDataUrl;
 
@@ -21,16 +21,13 @@ export default function GridCell({ cell, onChange, onActivate }: Props) {
     }
   };
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    // value 초기화 전에 배열로 스냅샷 — FileList는 input.value 클리어 시 함께 비워짐
+    const arr = Array.from(fileList);
     e.target.value = "";
-    if (!file) return;
-    try {
-      const dataUrl = await resizeToDataUrl(file);
-      onChange({ ...cell, imageDataUrl: dataUrl, transform: undefined });
-    } catch (err) {
-      console.error("[colorhunt] image processing failed:", err);
-    }
+    onUpload(arr, index);
   };
 
   return (
@@ -59,6 +56,7 @@ export default function GridCell({ cell, onChange, onActivate }: Props) {
         ref={inputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={handleFile}
       />
