@@ -78,7 +78,7 @@ export default function Onboarding() {
 
       <button
         type="button"
-        onClick={() => navigate("/grid")}
+        onClick={() => navigate("/hunt")}
         className="relative px-12 py-3 text-3xl font-bold text-ink transition-transform active:scale-95"
         style={{ minWidth: "13rem" }}
       >

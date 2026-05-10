@@ -2,12 +2,12 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./styles/index.css";
-import Onboarding from "./routes/Onboarding";
-import Grid from "./routes/Grid";
+import Onboarding from "./routes/onboarding";
+import Hunt from "./routes/hunt";
 
 const router = createBrowserRouter([
   { path: "/", element: <Onboarding /> },
-  { path: "/grid", element: <Grid /> },
+  { path: "/hunt", element: <Hunt /> },
 ]);
 
 createRoot(document.getElementById("root")!).render(
