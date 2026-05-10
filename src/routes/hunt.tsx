@@ -82,17 +82,47 @@ export default function Hunt() {
   const handleSave = async (choice: AspectChoice) => {
     if (busy) return;
     let aspect: { w: number; h: number };
+    let snapshot:
+      | {
+          frame: { w: number; h: number };
+          cells: { x: number; y: number; w: number; h: number }[];
+        }
+      | undefined;
     if (choice === "device") {
       const el = frameRef.current;
       if (!el) return;
-      const rect = el.getBoundingClientRect();
-      aspect = { w: rect.width, h: rect.height };
+      const frameRect = el.getBoundingClientRect();
+      const nodes = Array.from(
+        el.querySelectorAll<HTMLElement>("[data-cell-index]"),
+      );
+      const cells = nodes
+        .map((node) => {
+          const idx = Number(node.dataset.cellIndex);
+          const rect = node.getBoundingClientRect();
+          return Number.isFinite(idx)
+            ? {
+                idx,
+                x: rect.left - frameRect.left,
+                y: rect.top - frameRect.top,
+                w: rect.width,
+                h: rect.height,
+              }
+            : null;
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .sort((a, b) => a.idx - b.idx)
+        .map(({ x, y, w, h }) => ({ x, y, w, h }));
+
+      aspect = { w: frameRect.width, h: frameRect.height };
+      if (cells.length === state.cells.length) {
+        snapshot = { frame: aspect, cells };
+      }
     } else {
       aspect = choice;
     }
     setBusy(true);
     try {
-      await composeAndDownload(state, aspect);
+      await composeAndDownload(state, aspect, snapshot);
     } catch (err) {
       console.error("[colorhunt] download failed:", err);
     } finally {

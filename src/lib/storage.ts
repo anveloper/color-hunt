@@ -34,6 +34,18 @@ export function saveState(state: AppState): void {
   }
 }
 
+export function hasSavedWork(state: AppState): boolean {
+  return [...state.cells, ...state.overflowCells].some((cell) => !!cell.imageDataUrl);
+}
+
+export function clearState(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    // 초기화 실패 시 무시
+  }
+}
+
 const EDIT_HINT_KEY = "colorhunt:hint:edit-seen-v1";
 
 export function isEditHintSeen(): boolean {

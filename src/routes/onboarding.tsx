@@ -1,4 +1,10 @@
+import { useLayoutEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  clearState,
+  hasSavedWork,
+  loadState,
+} from "../lib/storage";
 
 const TITLE_CHARS: Array<{ ch: string; color: string; rotate: number }> = [
   { ch: "컬", color: "var(--color-pencil-red)", rotate: -3 },
@@ -9,6 +15,21 @@ const TITLE_CHARS: Array<{ ch: string; color: string; rotate: number }> = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const [resumeAvailable, setResumeAvailable] = useState(false);
+
+  useLayoutEffect(() => {
+    setResumeAvailable(hasSavedWork(loadState()));
+  }, []);
+
+  const handleStart = () => {
+    navigate("/hunt");
+  };
+
+  const handleReset = () => {
+    clearState();
+    setResumeAvailable(false);
+    navigate("/hunt");
+  };
 
   return (
     <main className="relative flex h-full w-full flex-col items-center justify-center gap-14 px-8">
@@ -76,52 +97,22 @@ export default function Onboarding() {
         ))}
       </h1>
 
-      <button
-        type="button"
-        onClick={() => navigate("/hunt")}
-        className="relative px-12 py-3 text-3xl font-bold text-ink transition-transform active:scale-95"
-        style={{ minWidth: "13rem" }}
-      >
-        <svg
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full"
-          preserveAspectRatio="none"
-          viewBox="0 0 220 70"
-          style={{ filter: "url(#pencil-rough)" }}
-        >
-          {/* 두 번 겹쳐 그어 더블 스트로크 색연필 느낌 */}
-          <rect
-            x="6"
-            y="6"
-            width="208"
-            height="58"
-            rx="14"
-            ry="14"
-            fill="none"
-            stroke="var(--color-pencil-red)"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.85"
-          />
-          <rect
-            x="8"
-            y="8"
-            width="204"
-            height="54"
-            rx="12"
-            ry="12"
-            fill="none"
-            stroke="var(--color-ink)"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="0 0"
-            opacity="0.75"
-          />
-        </svg>
-        <span className="relative">시작하기</span>
-      </button>
+      <div className="flex flex-col items-center gap-3">
+        <ActionButton
+          label={resumeAvailable ? "이어하기" : "시작하기"}
+          onClick={handleStart}
+        />
+
+        {resumeAvailable && (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="rounded-full px-4 py-2 text-base font-bold text-ink/62 transition-colors hover:text-ink active:scale-95"
+          >
+            지우고 다시하기
+          </button>
+        )}
+      </div>
 
       <p className="absolute bottom-14 text-sm text-ink/60">
         색을 모으고, 그리드에 담다
@@ -152,5 +143,61 @@ export default function Onboarding() {
         </a>
       </footer>
     </main>
+  );
+}
+
+function ActionButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative px-12 py-3 text-3xl font-bold text-ink transition-transform active:scale-95"
+      style={{ minWidth: "13rem" }}
+    >
+      <svg
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full"
+        preserveAspectRatio="none"
+        viewBox="0 0 220 70"
+        style={{ filter: "url(#pencil-rough)" }}
+      >
+        <rect
+          x="6"
+          y="6"
+          width="208"
+          height="58"
+          rx="14"
+          ry="14"
+          fill="none"
+          stroke="var(--color-pencil-red)"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.85"
+        />
+        <rect
+          x="8"
+          y="8"
+          width="204"
+          height="54"
+          rx="12"
+          ry="12"
+          fill="none"
+          stroke="var(--color-ink)"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray="0 0"
+          opacity="0.75"
+        />
+      </svg>
+      <span className="relative">{label}</span>
+    </button>
   );
 }

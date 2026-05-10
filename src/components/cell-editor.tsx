@@ -43,8 +43,8 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
     img.src = cell.imageDataUrl;
   }, [cell.imageDataUrl]);
 
-  // 셀 픽셀 크기 추적 — 디바이스 리사이즈/회전에도 반응
-  useEffect(() => {
+  // 셀 픽셀 크기 추적 — 첫 프레임부터 cover-px 박스로 그리도록 useLayoutEffect 사용
+  useLayoutEffect(() => {
     const el = cellRef.current;
     if (!el) return;
     const update = () => {
@@ -195,39 +195,38 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
         }}
       >
         {/* 셀 바깥으로 빠져나가는 영역을 흐리게 보여주는 고스트 레이어 (원본 cover 크기 유지) */}
-        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+        <img
+          src={cell.imageDataUrl}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="pointer-events-none absolute left-1/2 top-1/2 max-w-none max-h-none opacity-25 select-none"
+          style={{
+            width: coverDim ? `${coverDim.w}px` : "100%",
+            height: coverDim ? `${coverDim.h}px` : "100%",
+            objectFit: "cover",
+            transformOrigin: "center center",
+            // 셀 중앙(left/top:50%)에서 img 본인 크기의 -50%로 보정 → 항상 정중앙
+            transform: `translate(-50%, -50%) ${cssTransform}`,
+            willChange: "transform",
+          }}
+        />
+        {/* 실제 그리드에 들어가는(=저장되는) 선명 영역 */}
+        <div className="absolute inset-0 overflow-hidden bg-paper outline outline-2 outline-pencil-red">
           <img
             src={cell.imageDataUrl}
             alt=""
-            aria-hidden="true"
             draggable={false}
-            className="max-w-none max-h-none opacity-25 select-none"
+            className="absolute left-1/2 top-1/2 max-w-none max-h-none select-none"
             style={{
               width: coverDim ? `${coverDim.w}px` : "100%",
               height: coverDim ? `${coverDim.h}px` : "100%",
+              objectFit: "cover",
               transformOrigin: "center center",
-              transform: cssTransform,
+              transform: `translate(-50%, -50%) ${cssTransform}`,
               willChange: "transform",
             }}
           />
-        </div>
-        {/* 실제 그리드에 들어가는(=저장되는) 선명 영역 */}
-        <div className="absolute inset-0 overflow-hidden bg-paper outline outline-2 outline-pencil-red">
-          <div className="absolute inset-0 grid place-items-center">
-            <img
-              src={cell.imageDataUrl}
-              alt=""
-              draggable={false}
-              className="max-w-none max-h-none select-none"
-              style={{
-                width: coverDim ? `${coverDim.w}px` : "100%",
-                height: coverDim ? `${coverDim.h}px` : "100%",
-                transformOrigin: "center center",
-                transform: cssTransform,
-                willChange: "transform",
-              }}
-            />
-          </div>
         </div>
       </div>
 

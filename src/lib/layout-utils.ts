@@ -1,11 +1,12 @@
 import type { AppState, CellState, Layout } from "../types";
 
-export const LAYOUTS: Layout[] = ["3x3", "3x4", "2x3", "1x3"];
+export const LAYOUTS: Layout[] = ["3x3", "3x4", "2x3", "2x2", "1x3"];
 
 export const LAYOUT_DIMS: Record<Layout, { cols: number; rows: number }> = {
   "3x3": { cols: 3, rows: 3 },
   "3x4": { cols: 3, rows: 4 },
   "2x3": { cols: 2, rows: 3 },
+  "2x2": { cols: 2, rows: 2 },
   "1x3": { cols: 1, rows: 3 },
 };
 
