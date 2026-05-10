@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --font-hand: "Caveat", "Kalam", "Comic Sans MS", system-ui, sans-serif;
+  --color-paper: #faf8f3;
+  --color-ink: #1a1a1a;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: var(--font-hand);
+}
