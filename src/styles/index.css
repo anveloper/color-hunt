@@ -1,9 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --font-hand: "Caveat", "Kalam", "Comic Sans MS", system-ui, sans-serif;
-  --color-paper: #faf8f3;
-  --color-ink: #1a1a1a;
+  --font-hand: "Gaegu", "Caveat", system-ui, sans-serif;
+  --color-paper: #f6f1e3;
+  --color-ink: #2b2a26;
+
+  /* 색연필 팔레트 */
+  --color-pencil-red: #d9534f;
+  --color-pencil-orange: #e89b5a;
+  --color-pencil-yellow: #e8c547;
+  --color-pencil-green: #6aa84f;
+  --color-pencil-teal: #3fa9a0;
+  --color-pencil-blue: #5c6bc0;
+  --color-pencil-purple: #8e6ab0;
 }
 
 html,
@@ -11,7 +20,6 @@ body,
 #root {
   height: 100%;
   margin: 0;
-  background: var(--color-paper);
   color: var(--color-ink);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
@@ -19,4 +27,22 @@ body,
 
 body {
   font-family: var(--font-hand);
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(rgba(80, 60, 30, 0.04) 1px, transparent 1px),
+    radial-gradient(rgba(80, 60, 30, 0.025) 1px, transparent 1px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 2px;
+}
+
+/* 색연필 그라파이트 음영 — 글자 안쪽에 살짝 결을 줌 */
+.pencil-stroke {
+  filter: url(#pencil-wobble);
+}
+
+.pencil-text {
+  filter: url(#pencil-wobble);
+  text-shadow:
+    0.3px 0.4px 0 rgba(0, 0, 0, 0.18),
+    -0.3px 0.2px 0 rgba(0, 0, 0, 0.12);
 }
