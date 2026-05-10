@@ -43,6 +43,17 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
           offsetY: py / r.height,
         }));
       },
+      onWheel: ({ event, delta: [, dy] }) => {
+        event.preventDefault();
+        setT((cur) => {
+          const factor = Math.exp(-dy * 0.0015);
+          const next = Math.min(
+            SCALE_BOUNDS.max,
+            Math.max(SCALE_BOUNDS.min, cur.scale * factor),
+          );
+          return { ...cur, scale: next };
+        });
+      },
     },
     {
       target: cellRef,
