@@ -19,6 +19,7 @@ export default function Hunt() {
   const [hydrated, setHydrated] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [loadingIndices, setLoadingIndices] = useState<Set<number>>(new Set());
   const frameRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -40,26 +41,39 @@ export default function Hunt() {
   };
 
   const handleUpload = async (files: File[], fromIndex: number) => {
-    const dataUrls = await Promise.all(
-      files.map((f) =>
-        resizeToDataUrl(f).catch((err) => {
+    const targetIndices: number[] = [];
+    for (let idx = fromIndex; idx < state.cells.length && targetIndices.length < files.length; idx++) {
+      if (!state.cells[idx].imageDataUrl) targetIndices.push(idx);
+    }
+    if (targetIndices.length === 0) return;
+
+    setLoadingIndices((prev) => new Set([...prev, ...targetIndices]));
+
+    await Promise.all(
+      targetIndices.map(async (targetIndex, fileIndex) => {
+        const file = files[fileIndex];
+        try {
+          const url = await resizeToDataUrl(file);
+          setState((s) => {
+            const cells = s.cells.slice();
+            cells[targetIndex] = {
+              ...cells[targetIndex],
+              imageDataUrl: url,
+              transform: undefined,
+            };
+            return { ...s, cells };
+          });
+        } catch (err) {
           console.error("[colorhunt] image processing failed:", err);
-          return null;
-        }),
-      ),
+        } finally {
+          setLoadingIndices((prev) => {
+            const next = new Set(prev);
+            next.delete(targetIndex);
+            return next;
+          });
+        }
+      }),
     );
-    setState((s) => {
-      const cells = s.cells.slice();
-      let idx = fromIndex;
-      for (const url of dataUrls) {
-        if (!url) continue;
-        while (idx < cells.length && cells[idx].imageDataUrl) idx++;
-        if (idx >= cells.length) break;
-        cells[idx] = { ...cells[idx], imageDataUrl: url, transform: undefined };
-        idx++;
-      }
-      return { ...s, cells };
-    });
   };
 
   const handleActivateCell = (i: number) => {
@@ -137,6 +151,7 @@ export default function Hunt() {
     <div ref={frameRef} className="absolute inset-0">
       <GridBoard
         state={state}
+        loadingIndices={loadingIndices}
         onUpload={handleUpload}
         onActivateCell={handleActivateCell}
       />

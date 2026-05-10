@@ -4,6 +4,7 @@ import GridCell from "./grid-cell";
 
 type Props = {
   state: AppState;
+  loadingIndices: Set<number>;
   onUpload: (files: File[], fromIndex: number) => void;
   onActivateCell: (index: number) => void;
 };
@@ -14,7 +15,12 @@ const LINE_COLOR: Record<GridLineMode, string | null> = {
   none: null,
 };
 
-export default function GridBoard({ state, onUpload, onActivateCell }: Props) {
+export default function GridBoard({
+  state,
+  loadingIndices,
+  onUpload,
+  onActivateCell,
+}: Props) {
   const { cols, rows } = LAYOUT_DIMS[state.layout];
   const lineColor = LINE_COLOR[state.gridLineMode];
 
@@ -32,6 +38,7 @@ export default function GridBoard({ state, onUpload, onActivateCell }: Props) {
           key={cell.id}
           cell={cell}
           index={i}
+          loading={loadingIndices.has(i)}
           onUpload={onUpload}
           onActivate={() => onActivateCell(i)}
         />

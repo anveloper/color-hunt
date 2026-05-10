@@ -5,11 +5,18 @@ import { getTransform } from "../lib/transform";
 type Props = {
   cell: CellState;
   index: number;
+  loading: boolean;
   onUpload: (files: File[], fromIndex: number) => void;
   onActivate: () => void;
 };
 
-export default function GridCell({ cell, index, onUpload, onActivate }: Props) {
+export default function GridCell({
+  cell,
+  index,
+  loading,
+  onUpload,
+  onActivate,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cellRef = useRef<HTMLButtonElement>(null);
   const filled = !!cell.imageDataUrl;
@@ -102,6 +109,11 @@ export default function GridCell({ cell, index, onUpload, onActivate }: Props) {
         />
       ) : (
         <span className="text-3xl text-ink/30">+</span>
+      )}
+      {loading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/70 backdrop-blur-[1px]">
+          <div className="h-7 w-7 animate-spin rounded-full border-3 border-ink/20 border-t-ink" />
+        </div>
       )}
       <input
         ref={inputRef}
