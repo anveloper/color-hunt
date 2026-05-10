@@ -5,6 +5,7 @@ import GridCell from "./grid-cell";
 type Props = {
   state: AppState;
   onChangeCell: (index: number, next: CellState) => void;
+  onActivateCell: (index: number) => void;
 };
 
 const LINE_COLOR: Record<GridLineMode, string | null> = {
@@ -13,7 +14,7 @@ const LINE_COLOR: Record<GridLineMode, string | null> = {
   none: null,
 };
 
-export default function GridBoard({ state, onChangeCell }: Props) {
+export default function GridBoard({ state, onChangeCell, onActivateCell }: Props) {
   const { cols, rows } = LAYOUT_DIMS[state.layout];
   const lineColor = LINE_COLOR[state.gridLineMode];
 
@@ -31,6 +32,7 @@ export default function GridBoard({ state, onChangeCell }: Props) {
           key={cell.id}
           cell={cell}
           onChange={(next) => onChangeCell(i, next)}
+          onActivate={() => onActivateCell(i)}
         />
       ))}
 

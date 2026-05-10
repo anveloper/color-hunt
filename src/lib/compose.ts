@@ -1,6 +1,7 @@
 import type { AppState } from "../types";
 import { LAYOUT_DIMS } from "./layout-utils";
 import { loadImage } from "./image";
+import { getTransform } from "./transform";
 
 const TARGET_WIDTH = 1080;
 const PAPER_BG = "#f6f1e3";
@@ -29,20 +30,28 @@ export async function composeAndDownload(
     state.cells.map(async (cell, i) => {
       if (!cell.imageDataUrl) return;
       const img = await loadImage(cell.imageDataUrl);
+      const t = getTransform(cell.transform);
       const c = i % cols;
       const r = Math.floor(i / cols);
       const x = c * cellW;
       const y = r * cellH;
-      const ratio = Math.max(cellW / img.width, cellH / img.height);
-      const dw = img.width * ratio;
-      const dh = img.height * ratio;
-      const dx = x + (cellW - dw) / 2;
-      const dy = y + (cellH - dh) / 2;
+
       ctx.save();
       ctx.beginPath();
       ctx.rect(x, y, cellW, cellH);
       ctx.clip();
-      ctx.drawImage(img, dx, dy, dw, dh);
+
+      // CSS와 동일한 변환 순서: translate(offset) → rotate → scale, transform-origin: center.
+      ctx.translate(x + cellW / 2 + t.offsetX * cellW, y + cellH / 2 + t.offsetY * cellH);
+      ctx.rotate((t.rotation * Math.PI) / 180);
+      ctx.scale(t.scale, t.scale);
+
+      // 기본 cover-fit 크기 계산 후 중앙 기준으로 그리기.
+      const ratio = Math.max(cellW / img.width, cellH / img.height);
+      const dw = img.width * ratio;
+      const dh = img.height * ratio;
+      ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+
       ctx.restore();
     }),
   );

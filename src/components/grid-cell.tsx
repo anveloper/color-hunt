@@ -1,17 +1,24 @@
 import { useRef } from "react";
 import type { CellState } from "../types";
 import { resizeToDataUrl } from "../lib/image";
+import { getTransform, transformCss } from "../lib/transform";
 
 type Props = {
   cell: CellState;
   onChange: (next: CellState) => void;
+  onActivate: () => void;
 };
 
-export default function GridCell({ cell, onChange }: Props) {
+export default function GridCell({ cell, onChange, onActivate }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const filled = !!cell.imageDataUrl;
 
-  const handlePick = () => {
-    inputRef.current?.click();
+  const handleClick = () => {
+    if (filled) {
+      onActivate();
+    } else {
+      inputRef.current?.click();
+    }
   };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,7 +27,7 @@ export default function GridCell({ cell, onChange }: Props) {
     if (!file) return;
     try {
       const dataUrl = await resizeToDataUrl(file);
-      onChange({ ...cell, imageDataUrl: dataUrl });
+      onChange({ ...cell, imageDataUrl: dataUrl, transform: undefined });
     } catch (err) {
       console.error("[colorhunt] image processing failed:", err);
     }
@@ -29,17 +36,21 @@ export default function GridCell({ cell, onChange }: Props) {
   return (
     <button
       type="button"
-      onClick={handlePick}
+      onClick={handleClick}
       className="relative flex items-center justify-center overflow-hidden bg-paper/40 select-none"
-      style={{ touchAction: "none" }}
-      aria-label={cell.imageDataUrl ? "사진 교체" : "사진 추가"}
+      style={{ touchAction: "manipulation" }}
+      aria-label={filled ? "사진 수정" : "사진 추가"}
     >
-      {cell.imageDataUrl ? (
+      {filled ? (
         <img
           src={cell.imageDataUrl}
           alt=""
           draggable={false}
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{
+            transformOrigin: "center center",
+            transform: transformCss(getTransform(cell.transform)),
+          }}
         />
       ) : (
         <span className="text-3xl text-ink/30">+</span>

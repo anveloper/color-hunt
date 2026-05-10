@@ -5,6 +5,7 @@ import { DEFAULT_STATE, loadState, saveState } from "../lib/storage";
 import { composeAndDownload } from "../lib/compose";
 import GridBoard from "../components/grid-board";
 import FloatingDock from "../components/floating-dock";
+import CellEditor from "../components/cell-editor";
 
 const LINE_CYCLE: Record<GridLineMode, GridLineMode> = {
   white: "black",
@@ -16,6 +17,7 @@ export default function Hunt() {
   const [state, setState] = useState<AppState>(() => DEFAULT_STATE);
   const [hydrated, setHydrated] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -36,8 +38,17 @@ export default function Hunt() {
     });
   };
 
+  const handleActivateCell = (i: number) => {
+    setEditingIndex(i);
+  };
+
+  const handleCloseEditor = () => {
+    setEditingIndex(null);
+  };
+
   const handleCycleLayout = () => {
     setState((s) => applyLayoutChange(s, nextLayout(s.layout)));
+    setEditingIndex(null);
   };
 
   const handleCycleLineMode = () => {
@@ -58,17 +69,37 @@ export default function Hunt() {
     }
   };
 
+  const editingCell =
+    editingIndex !== null ? state.cells[editingIndex] : null;
+
   return (
     <div ref={frameRef} className="absolute inset-0">
-      <GridBoard state={state} onChangeCell={handleChangeCell} />
-      <FloatingDock
-        layout={state.layout}
-        gridLineMode={state.gridLineMode}
-        busy={busy}
-        onCycleLayout={handleCycleLayout}
-        onCycleLineMode={handleCycleLineMode}
-        onDownload={handleDownload}
+      <GridBoard
+        state={state}
+        onChangeCell={handleChangeCell}
+        onActivateCell={handleActivateCell}
       />
+
+      {editingCell && editingIndex !== null && (
+        <CellEditor
+          cell={editingCell}
+          index={editingIndex}
+          layout={state.layout}
+          onUpdate={(next) => handleChangeCell(editingIndex, next)}
+          onClose={handleCloseEditor}
+        />
+      )}
+
+      {editingIndex === null && (
+        <FloatingDock
+          layout={state.layout}
+          gridLineMode={state.gridLineMode}
+          busy={busy}
+          onCycleLayout={handleCycleLayout}
+          onCycleLineMode={handleCycleLineMode}
+          onDownload={handleDownload}
+        />
+      )}
     </div>
   );
 }
