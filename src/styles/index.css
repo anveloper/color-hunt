@@ -18,15 +18,29 @@
 html,
 body,
 #root {
-  height: 100%;
   margin: 0;
-  color: var(--color-ink);
+  width: 100%;
+  height: 100%;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
 
 body {
   font-family: var(--font-hand);
+  color: var(--color-ink);
+  background-color: #1f1d1b;
+}
+
+#root {
+  display: grid;
+  place-items: center;
+}
+
+.app-frame {
+  position: relative;
+  overflow: hidden;
+  width: 100dvw;
+  height: 100dvh;
   background-color: var(--color-paper);
   background-image:
     radial-gradient(rgba(80, 60, 30, 0.04) 1px, transparent 1px),
@@ -35,7 +49,16 @@ body {
   background-position: 0 0, 1px 2px;
 }
 
-/* 색연필 그라파이트 음영 — 글자 안쪽에 살짝 결을 줌 */
+/* PC: 9:16 세로 프레임 가운데 배치 */
+@media (min-width: 769px) {
+  .app-frame {
+    width: min(calc(100dvw - 48px), calc((100dvh - 48px) * 9 / 16));
+    height: min(calc(100dvh - 48px), calc((100dvw - 48px) * 16 / 9));
+    border-radius: 28px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  }
+}
+
 .pencil-stroke {
   filter: url(#pencil-wobble);
 }
