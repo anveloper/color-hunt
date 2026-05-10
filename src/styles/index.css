@@ -54,7 +54,6 @@ body {
   .app-frame {
     width: min(calc(100dvw - 48px), calc((100dvh - 48px) * 9 / 16));
     height: min(calc(100dvh - 48px), calc((100dvw - 48px) * 16 / 9));
-    border-radius: 28px;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
   }
 }
