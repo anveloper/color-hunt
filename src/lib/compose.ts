@@ -2,6 +2,7 @@ import type { AppState } from "../types";
 import { LAYOUT_DIMS } from "./layout-utils";
 import { loadImage } from "./image";
 import { getTransform } from "./transform";
+import { canSaveToDevice, saveDataUrlToDevice } from "./toss";
 
 const BASE_DIM = 1080;
 const PAPER_BG = "#f6f1e3";
@@ -123,6 +124,14 @@ export async function composeAndDownload(
     }
   }
 
+  const fileName = `colorhunt-${Date.now()}.png`;
+
+  // 앱인토스 웹뷰에서는 <a download>가 동작하지 않으므로 네이티브 저장 API를 쓴다.
+  if (canSaveToDevice()) {
+    await saveDataUrlToDevice(canvas.toDataURL("image/png"), fileName);
+    return;
+  }
+
   await new Promise<void>((resolve) => {
     canvas.toBlob(
       (blob) => {
@@ -133,7 +142,7 @@ export async function composeAndDownload(
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `colorhunt-${Date.now()}.png`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         a.remove();

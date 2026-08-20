@@ -30,25 +30,34 @@ async function ensureDecodableBlob(file: File): Promise<Blob> {
   }
 }
 
-export async function resizeToDataUrl(file: File): Promise<string> {
-  const blob = await ensureDecodableBlob(file);
+/**
+ * 업로드 소스를 리사이즈된 JPEG data URL로 정규화한다.
+ * `File`은 웹 파일 피커 경로, `string`(data URL)은 앱인토스 앨범/카메라 경로다.
+ */
+export async function resizeToDataUrl(source: File | string): Promise<string> {
+  if (typeof source === "string") return resizeFromUrl(source);
+  const blob = await ensureDecodableBlob(source);
   const url = URL.createObjectURL(blob);
   try {
-    const img = await loadImage(url);
-    const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
-    const w = Math.max(1, Math.round(img.width * scale));
-    const h = Math.max(1, Math.round(img.height * scale));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("canvas 2d context unavailable");
-    ctx.drawImage(img, 0, 0, w, h);
-    return canvas.toDataURL("image/jpeg", QUALITY);
+    return await resizeFromUrl(url);
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+async function resizeFromUrl(url: string): Promise<string> {
+  const img = await loadImage(url);
+  const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas 2d context unavailable");
+  ctx.drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL("image/jpeg", QUALITY);
 }
 
 export function loadImage(src: string): Promise<HTMLImageElement> {

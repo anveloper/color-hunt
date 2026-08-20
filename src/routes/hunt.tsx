@@ -40,9 +40,10 @@ export default function Hunt() {
     });
   };
 
-  const handleUpload = async (files: File[], fromIndex: number) => {
+  // sources: 웹은 File, 앱인토스는 앨범에서 받은 data URL 문자열
+  const handleUpload = async (sources: (File | string)[], fromIndex: number) => {
     const targetIndices: number[] = [];
-    for (let idx = fromIndex; idx < state.cells.length && targetIndices.length < files.length; idx++) {
+    for (let idx = fromIndex; idx < state.cells.length && targetIndices.length < sources.length; idx++) {
       if (!state.cells[idx].imageDataUrl) targetIndices.push(idx);
     }
     if (targetIndices.length === 0) return;
@@ -50,10 +51,10 @@ export default function Hunt() {
     setLoadingIndices((prev) => new Set([...prev, ...targetIndices]));
 
     await Promise.all(
-      targetIndices.map(async (targetIndex, fileIndex) => {
-        const file = files[fileIndex];
+      targetIndices.map(async (targetIndex, sourceIndex) => {
+        const source = sources[sourceIndex];
         try {
-          const url = await resizeToDataUrl(file);
+          const url = await resizeToDataUrl(source);
           setState((s) => {
             const cells = s.cells.slice();
             cells[targetIndex] = {

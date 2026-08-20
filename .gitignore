@@ -36,3 +36,6 @@ lerna-debug.log*
 
 # vercel
 .vercel
+
+# apps-in-toss
+*.ait

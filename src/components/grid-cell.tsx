@@ -1,12 +1,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CellState } from "../types";
 import { getTransform } from "../lib/transform";
+import { isInToss, pickPhotos } from "../lib/toss";
 
 type Props = {
   cell: CellState;
   index: number;
   loading: boolean;
-  onUpload: (files: File[], fromIndex: number) => void;
+  /** 이 셀부터 뒤로 남은 빈 셀 수 — 앱인토스 앨범에서 한 번에 고를 최대 장수 */
+  maxPickCount: number;
+  onUpload: (sources: (File | string)[], fromIndex: number) => void;
   onActivate: () => void;
 };
 
@@ -14,6 +17,7 @@ export default function GridCell({
   cell,
   index,
   loading,
+  maxPickCount,
   onUpload,
   onActivate,
 }: Props) {
@@ -65,12 +69,23 @@ export default function GridCell({
     return `translate(${tx}px, ${ty}px) rotate(${t.rotation}deg) scale(${t.scale})`;
   }, [t, cellSize]);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (filled) {
       onActivate();
-    } else {
-      inputRef.current?.click();
+      return;
     }
+    // 앱인토스 웹뷰에서는 파일 피커 대신 네이티브 앨범을 연다.
+    if (isInToss()) {
+      try {
+        const dataUrls = await pickPhotos(maxPickCount);
+        if (dataUrls.length > 0) onUpload(dataUrls, index);
+      } catch (err) {
+        // 권한 거부/취소로 못 가져와도 나머지 기능은 그대로 동작해야 한다.
+        console.error("[colorhunt] toss album pick failed:", err);
+      }
+      return;
+    }
+    inputRef.current?.click();
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {

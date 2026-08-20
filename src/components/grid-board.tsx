@@ -5,7 +5,7 @@ import GridCell from "./grid-cell";
 type Props = {
   state: AppState;
   loadingIndices: Set<number>;
-  onUpload: (files: File[], fromIndex: number) => void;
+  onUpload: (sources: (File | string)[], fromIndex: number) => void;
   onActivateCell: (index: number) => void;
 };
 
@@ -39,6 +39,9 @@ export default function GridBoard({
           cell={cell}
           index={i}
           loading={loadingIndices.has(i)}
+          maxPickCount={
+            state.cells.slice(i).filter((c) => !c.imageDataUrl).length
+          }
           onUpload={onUpload}
           onActivate={() => onActivateCell(i)}
         />
