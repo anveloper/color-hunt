@@ -1,5 +1,6 @@
 import {
   Device,
+  FetchAlbumPhotosPermissionError,
   File as TossFile,
   type PermissionDialogResult,
   type PermissionStatus,
@@ -30,18 +31,36 @@ async function ensurePermission(fn: {
   return (await fn.openPermissionDialog()) === "allowed";
 }
 
+// 브릿지로 오가는 base64 payload를 억제하기 위한 상한.
+// 1080px 그리드에서 셀 하나는 360px(3열)~540px(2열)이라 원본이 클 이유가 없다.
+// 크게 잡으면 여러 장을 한 번에 받을 때 웹뷰가 메모리로 죽는다.
+const PICK_MAX_WIDTH = 720;
+const PICK_MAX_COUNT = 9;
+
 /**
  * 토스 앨범에서 사진을 골라 data URL 배열로 돌려준다.
  * 취소하거나 권한이 없으면 빈 배열 — 호출 측은 평소대로 계속 동작해야 한다.
  */
 export async function pickPhotos(maxCount: number): Promise<string[]> {
   if (!(await ensurePermission(Device.getPhotos))) return [];
-  const photos = await Device.getPhotos({
-    base64: true,
-    maxCount,
-    maxWidth: 1200,
-  });
-  return photos.map((p) => p.dataUri);
+  let photos;
+  try {
+    photos = await Device.getPhotos({
+      base64: true,
+      maxCount: Math.max(1, Math.min(maxCount, PICK_MAX_COUNT)),
+      maxWidth: PICK_MAX_WIDTH,
+    });
+  } catch (err) {
+    if (err instanceof FetchAlbumPhotosPermissionError) return [];
+    throw err;
+  }
+  // base64: true면 dataUri는 접두사가 없는 순수 base64 문자열이다.
+  // 그대로 img.src에 넣으면 거대한 상대 URL로 요청이 나가 웹뷰가 죽는다.
+  return photos.map((p) =>
+    p.dataUri.startsWith("data:")
+      ? p.dataUri
+      : `data:image/jpeg;base64,${p.dataUri}`,
+  );
 }
 
 /** File.saveBase64를 쓸 수 있는 토스앱 버전인지. */
