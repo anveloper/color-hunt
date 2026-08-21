@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { AppState, CellState, GridLineMode } from "../types";
-import { applyLayoutChange, nextLayout } from "../lib/layout-utils";
+import type { AppState, CellState, GridLineMode, Layout } from "../types";
+import { applyLayoutChange } from "../lib/layout-utils";
 import { DEFAULT_STATE, loadState, saveState } from "../lib/storage";
 import { composeAndDownload } from "../lib/compose";
 import { resizeToDataUrl } from "../lib/image";
@@ -16,12 +16,6 @@ import OverlayLayer from "../components/overlay-layer";
 import OverlayDock from "../components/overlay-dock";
 import type { OverlayKind } from "../types";
 import { normalizeTrack } from "../lib/overlay";
-
-const LINE_CYCLE: Record<GridLineMode, GridLineMode> = {
-  white: "black",
-  black: "none",
-  none: "white",
-};
 
 export default function Hunt() {
   const [state, setState] = useState<AppState>(() => DEFAULT_STATE);
@@ -165,13 +159,13 @@ export default function Hunt() {
     setEditingIndex(null);
   };
 
-  const handleCycleLayout = () => {
-    setState((s) => applyLayoutChange(s, nextLayout(s.layout)));
+  const handleSelectLayout = (layout: Layout) => {
+    setState((s) => (s.layout === layout ? s : applyLayoutChange(s, layout)));
     setEditingIndex(null);
   };
 
-  const handleCycleLineMode = () => {
-    setState((s) => ({ ...s, gridLineMode: LINE_CYCLE[s.gridLineMode] }));
+  const handleSelectLineMode = (gridLineMode: GridLineMode) => {
+    setState((s) => ({ ...s, gridLineMode }));
   };
 
   const handleSave = async (choice: AspectChoice) => {
@@ -289,8 +283,8 @@ export default function Hunt() {
           onToggleRun={handleToggleRun}
           canDecorate={state.run != null && !running}
           onDecorate={() => setDecorating(true)}
-          onCycleLayout={handleCycleLayout}
-          onCycleLineMode={handleCycleLineMode}
+          onSelectLayout={handleSelectLayout}
+          onSelectLineMode={handleSelectLineMode}
           onSave={handleSave}
         />
       )}

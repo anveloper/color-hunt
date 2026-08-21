@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { GridLineMode, Layout } from "../types";
+import { LAYOUTS } from "../lib/layout-utils";
 import TapButton from "./tap-button";
 import { formatDuration } from "../lib/overlay";
 
@@ -29,8 +30,8 @@ type Props = {
   onToggleRun: () => void;
   canDecorate: boolean;
   onDecorate: () => void;
-  onCycleLayout: () => void;
-  onCycleLineMode: () => void;
+  onSelectLayout: (layout: Layout) => void;
+  onSelectLineMode: (mode: GridLineMode) => void;
   onSave: (choice: AspectChoice) => void;
 };
 
@@ -49,23 +50,24 @@ export default function FloatingDock({
   onToggleRun,
   canDecorate,
   onDecorate,
-  onCycleLayout,
-  onCycleLineMode,
+  onSelectLayout,
+  onSelectLineMode,
   onSave,
 }: Props) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  // 한 번에 하나만 열린다.
+  const [openMenu, setOpenMenu] = useState<"style" | "aspect" | null>(null);
 
   const handleSelect = (choice: AspectChoice) => {
-    setMenuOpen(false);
+    setOpenMenu(null);
     onSave(choice);
   };
 
   return (
     <>
-      {menuOpen && (
+      {openMenu != null && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => setMenuOpen(false)}
+          onClick={() => setOpenMenu(null)}
           aria-hidden="true"
         />
       )}
@@ -84,27 +86,58 @@ export default function FloatingDock({
           {canDecorate && (
             <>
               <Divider />
-              <DockButton onClick={onDecorate} label="꾸미기" sub="경로·시간·색" />
+              <DockButton onClick={onDecorate} label="꾸미기" sub="오버레이" />
             </>
           )}
           <Divider />
-          <DockButton onClick={onCycleLayout} label={layout} sub="레이아웃" />
-          <Divider />
-          <DockButton
-            onClick={onCycleLineMode}
-            label={LINE_LABEL[gridLineMode]}
-            sub="그리드선"
-          />
+          <div className="relative">
+            <DockButton
+              onClick={() => setOpenMenu((m) => (m === "style" ? null : "style"))}
+              label="스타일"
+              sub={`${layout} · ${LINE_LABEL[gridLineMode]}`}
+            />
+            {openMenu === "style" && (
+              <div
+                role="menu"
+                className="absolute bottom-full left-1/2 z-50 mb-3 w-56 -translate-x-1/2 overflow-hidden rounded-2xl border border-ink/15 bg-paper shadow-xl"
+              >
+                <MenuSection label="레이아웃" />
+                <div className="flex flex-wrap gap-1 px-3 pb-2">
+                  {LAYOUTS.map((l) => (
+                    <ChipButton
+                      key={l}
+                      active={l === layout}
+                      onClick={() => onSelectLayout(l)}
+                    >
+                      {l}
+                    </ChipButton>
+                  ))}
+                </div>
+                <MenuSection label="그리드선" />
+                <div className="flex flex-wrap gap-1 px-3 pb-3">
+                  {(Object.keys(LINE_LABEL) as GridLineMode[]).map((m) => (
+                    <ChipButton
+                      key={m}
+                      active={m === gridLineMode}
+                      onClick={() => onSelectLineMode(m)}
+                    >
+                      {LINE_LABEL[m]}
+                    </ChipButton>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <Divider />
           <div className="relative">
             <DockButton
-              onClick={() => setMenuOpen((o) => !o)}
+              onClick={() => setOpenMenu((m) => (m === "aspect" ? null : "aspect"))}
               label={busy ? "저장중…" : "저장"}
-              sub={menuOpen ? "▴ 비율" : "▾ 비율"}
+              sub={openMenu === "aspect" ? "▴ 비율" : "▾ 비율"}
               disabled={busy}
               accent
             />
-            {menuOpen && (
+            {openMenu === "aspect" && (
               <div
                 role="menu"
                 className="absolute bottom-full right-0 z-50 mb-3 w-56 overflow-hidden rounded-2xl border border-ink/15 bg-paper shadow-xl"
@@ -159,4 +192,32 @@ function DockButton({ label, sub, onClick, disabled, accent }: ButtonProps) {
 
 function Divider() {
   return <span className="h-6 w-px bg-ink/15" aria-hidden="true" />;
+}
+
+function MenuSection({ label }: { label: string }) {
+  return (
+    <div className="px-3 pt-3 pb-1.5 text-xs font-bold text-ink/45">{label}</div>
+  );
+}
+
+function ChipButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <TapButton
+      onClick={onClick}
+      className={
+        "rounded-full px-3 py-1 text-sm font-bold transition-colors " +
+        (active ? "bg-ink text-paper" : "text-ink hover:bg-ink/5")
+      }
+    >
+      {children}
+    </TapButton>
+  );
 }
