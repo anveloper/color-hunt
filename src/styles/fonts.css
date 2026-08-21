@@ -1,0 +1,20 @@
+/* 자동 생성 파일 — 직접 수정하지 마세요.
+ * `pnpm run fonts`로 다시 만듭니다 (scripts/build-fonts.mjs).
+ * 앱에서 쓰는 391자만 담은 서브셋입니다.
+ */
+
+@font-face {
+  font-family: "Gaegu";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/gaegu-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Gaegu";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/gaegu-700.woff2") format("woff2");
+}

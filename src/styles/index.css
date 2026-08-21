@@ -1,7 +1,8 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 @theme {
-  --font-hand: "Gaegu", "Caveat", system-ui, sans-serif;
+  --font-hand: "Gaegu", system-ui, sans-serif;
   --color-paper: #f6f1e3;
   --color-ink: #2b2a26;
 
@@ -25,7 +26,10 @@ body,
   overscroll-behavior: none;
 }
 
-body {
+/* TDS(TDSMobileAITProvider)가 런타임에 emotion Global로 body의 font-family/color/
+   background-color를 주입한다. 번들 CSS보다 뒤에 삽입되므로 같은 `body` 셀렉터로는
+   진다. specificity를 올려(html body = 0,0,2) 주입 순서와 무관하게 우리 값이 이기게 한다. */
+html body {
   font-family: var(--font-hand);
   color: var(--color-ink);
   background-color: #1f1d1b;

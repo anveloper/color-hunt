@@ -5,6 +5,8 @@ import {
   hasSavedWork,
   loadState,
 } from "../lib/storage";
+import { ConfirmDialog } from "@toss/tds-mobile";
+import { isInToss } from "../lib/toss";
 
 const TITLE_CHARS: Array<{ ch: string; color: string; rotate: number }> = [
   { ch: "컬", color: "var(--color-pencil-red)", rotate: -3 },
@@ -16,6 +18,7 @@ const TITLE_CHARS: Array<{ ch: string; color: string; rotate: number }> = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const [resumeAvailable, setResumeAvailable] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useLayoutEffect(() => {
     setResumeAvailable(hasSavedWork(loadState()));
@@ -25,9 +28,11 @@ export default function Onboarding() {
     navigate("/hunt");
   };
 
+  // 모아둔 사진이 전부 사라지는 동작이라 확인을 받고 진행한다.
   const handleReset = () => {
     clearState();
     setResumeAvailable(false);
+    setConfirmOpen(false);
     navigate("/hunt");
   };
 
@@ -106,7 +111,7 @@ export default function Onboarding() {
         {resumeAvailable && (
           <button
             type="button"
-            onClick={handleReset}
+            onClick={() => setConfirmOpen(true)}
             className="rounded-full px-4 py-2 text-base font-bold text-ink/62 transition-colors hover:text-ink active:scale-95"
           >
             지우고 다시하기
@@ -114,10 +119,30 @@ export default function Onboarding() {
         )}
       </div>
 
+      <ConfirmDialog
+        open={confirmOpen}
+        title="다 지울까요?"
+        description="모아둔 사진이 모두 사라져요. 이 동작은 되돌릴 수 없어요."
+        onClose={() => setConfirmOpen(false)}
+        cancelButton={
+          <ConfirmDialog.CancelButton onClick={() => setConfirmOpen(false)}>
+            그대로 둘래요
+          </ConfirmDialog.CancelButton>
+        }
+        confirmButton={
+          <ConfirmDialog.ConfirmButton onClick={handleReset}>
+            지우기
+          </ConfirmDialog.ConfirmButton>
+        }
+      />
+
       <p className="absolute bottom-14 text-sm text-ink/60">
         색을 모으고, 그리드에 담다
       </p>
 
+      {/* 앱인토스 심사 기준상 미니앱에서 자사 서비스로 유도하는 링크를 둘 수 없다.
+          웹(color-hunt.run)에서는 그대로 노출한다. */}
+      {!isInToss() && (
       <footer
         className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5 text-xs text-ink/55"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -142,6 +167,7 @@ export default function Onboarding() {
           </svg>
         </a>
       </footer>
+      )}
     </main>
   );
 }

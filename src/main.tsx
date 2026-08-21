@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { TDSMobileAITProvider } from "@toss/tds-mobile-ait";
 import "./styles/index.css";
 import AppShell from "./components/app-shell";
 import Onboarding from "./routes/onboarding";
@@ -18,6 +19,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <TDSMobileAITProvider>
+      <RouterProvider router={router} />
+    </TDSMobileAITProvider>
   </StrictMode>,
 );
