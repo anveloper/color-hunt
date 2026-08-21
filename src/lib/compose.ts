@@ -1,4 +1,4 @@
-import type { AppState } from "../types";
+import type { AppState, OverlayEmphasis } from "../types";
 import { LAYOUT_DIMS } from "./layout-utils";
 import { loadImage } from "./image";
 import { getTransform } from "./transform";
@@ -192,11 +192,11 @@ function drawOverlays(
     ctx.scale(t.scale * canvas.scale, t.scale * canvas.scale);
 
     if (asset.kind === "course" && track != null) {
-      drawCourse(ctx, track, color.hex);
+      drawCourse(ctx, track, color.hex, asset.emphasis);
     } else if (asset.kind === "runtime") {
-      drawText(ctx, formatDuration(duration), 24);
+      drawText(ctx, formatDuration(duration), 24, asset.emphasis);
     } else if (asset.kind === "color") {
-      drawColorChip(ctx, color.name, color.hex);
+      drawColorChip(ctx, color.name, color.hex, asset.emphasis);
     }
 
     ctx.restore();
@@ -212,12 +212,42 @@ function drawCourse(
   ctx: CanvasRenderingContext2D,
   track: NonNullable<ReturnType<typeof normalizeTrack>>,
   hex: string,
+  emphasis: OverlayEmphasis,
 ): void {
   const unit = COURSE_PX / COURSE_VIEW_SPAN;
   const toPx = (v: number) => (v - COURSE_VIEW_MIN) * unit - COURSE_PX / 2;
 
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+
+  const path = () => {
+    ctx.beginPath();
+    track.points.forEach((p, i) => {
+      const x = toPx(p.x);
+      const y = toPx(p.y);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+  };
+
+  if (emphasis === "plate") {
+    // 화면의 rounded plate와 같은 자리에 깐다.
+    const pad = 10;
+    ctx.fillStyle = "rgba(43,42,38,0.6)";
+    roundRect(ctx, -COURSE_PX / 2 - pad, -COURSE_PX / 2 - pad, COURSE_PX + pad * 2, COURSE_PX + pad * 2, 16);
+    ctx.fill();
+  } else if (emphasis === "shadow") {
+    ctx.shadowColor = "rgba(0,0,0,0.45)";
+    ctx.shadowOffsetY = 1;
+    ctx.shadowBlur = 2;
+  } else {
+    // outline: 같은 경로를 굵고 어둡게 한 번 더 깐다.
+    ctx.strokeStyle = "rgba(0,0,0,0.8)";
+    ctx.lineWidth = 0.055 * unit;
+    path();
+    ctx.stroke();
+  }
+
   ctx.strokeStyle = hex;
   ctx.lineWidth = 0.035 * unit;
 
@@ -229,6 +259,7 @@ function drawCourse(
     else ctx.lineTo(x, y);
   });
   ctx.stroke();
+  ctx.shadowColor = "transparent";
 
   for (const spot of track.spots) {
     ctx.beginPath();
@@ -241,14 +272,22 @@ function drawCourse(
   }
 }
 
-function drawText(ctx: CanvasRenderingContext2D, text: string, size: number): void {
+function drawText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  size: number,
+  emphasis: OverlayEmphasis,
+): void {
   ctx.font = `bold ${size}px Gaegu, system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  // 사진 위에서도 읽히도록 얇은 그림자를 깐다.
-  ctx.shadowColor = "rgba(0,0,0,0.45)";
-  ctx.shadowOffsetY = 1;
-  ctx.shadowBlur = 2;
+  applyEmphasis(ctx, emphasis, ctx.measureText(text).width, size);
+  if (emphasis === "outline") {
+    ctx.strokeStyle = "rgba(0,0,0,0.85)";
+    ctx.lineWidth = size * 0.14;
+    ctx.lineJoin = "round";
+    ctx.strokeText(text, 0, 0);
+  }
   ctx.fillStyle = "#f6f1e3";
   ctx.fillText(text, 0, 0);
   ctx.shadowColor = "transparent";
@@ -258,6 +297,7 @@ function drawColorChip(
   ctx: CanvasRenderingContext2D,
   name: string,
   hex: string,
+  emphasis: OverlayEmphasis,
 ): void {
   const size = 18;
   ctx.font = `bold ${size}px Gaegu, system-ui, sans-serif`;
@@ -267,6 +307,8 @@ function drawColorChip(
   const total = chip + gap + textW;
   const left = -total / 2;
 
+  applyEmphasis(ctx, emphasis, total, size);
+
   ctx.beginPath();
   ctx.arc(left + chip / 2, 0, chip / 2, 0, Math.PI * 2);
   ctx.fillStyle = hex;
@@ -274,10 +316,55 @@ function drawColorChip(
 
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.shadowColor = "rgba(0,0,0,0.45)";
-  ctx.shadowOffsetY = 1;
-  ctx.shadowBlur = 2;
+  if (emphasis === "outline") {
+    ctx.strokeStyle = "rgba(0,0,0,0.85)";
+    ctx.lineWidth = size * 0.14;
+    ctx.lineJoin = "round";
+    ctx.strokeText(name, left + chip + gap, 0);
+  }
   ctx.fillStyle = "#f6f1e3";
   ctx.fillText(name, left + chip + gap, 0);
   ctx.shadowColor = "transparent";
+}
+
+/** 화면(overlay-layer.tsx)의 세 가지 강조 방식을 캔버스에 맞춘다. */
+function applyEmphasis(
+  ctx: CanvasRenderingContext2D,
+  emphasis: OverlayEmphasis,
+  contentW: number,
+  size: number,
+): void {
+  ctx.shadowColor = "transparent";
+  if (emphasis === "shadow") {
+    ctx.shadowColor = "rgba(0,0,0,0.45)";
+    ctx.shadowOffsetY = 1;
+    ctx.shadowBlur = 2;
+    return;
+  }
+  if (emphasis === "plate") {
+    const padX = 12;
+    const padY = 6;
+    const h = size + padY * 2;
+    ctx.fillStyle = "rgba(43,42,38,0.6)";
+    roundRect(ctx, -contentW / 2 - padX, -h / 2, contentW + padX * 2, h, h / 2.6);
+    ctx.fill();
+  }
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
 }

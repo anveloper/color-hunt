@@ -1,7 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AppState, CellState, GridLineMode, Layout } from "../types";
 import { applyLayoutChange } from "../lib/layout-utils";
-import { DEFAULT_STATE, loadState, saveState } from "../lib/storage";
+import {
+  DEFAULT_STATE,
+  isDecorateHintSeen,
+  loadState,
+  markDecorateHintSeen,
+  saveState,
+} from "../lib/storage";
 import { composeAndDownload } from "../lib/compose";
 import { resizeToDataUrl } from "../lib/image";
 import { ensureLocationPermission } from "../lib/location";
@@ -15,7 +21,11 @@ import CellEditor from "../components/cell-editor";
 import OverlayLayer from "../components/overlay-layer";
 import OverlayDock from "../components/overlay-dock";
 import type { OverlayKind } from "../types";
-import { defaultOverlayTransform, normalizeTrack } from "../lib/overlay";
+import {
+  EMPHASIS_CYCLE,
+  defaultOverlayTransform,
+  normalizeTrack,
+} from "../lib/overlay";
 
 export default function Hunt() {
   const [state, setState] = useState<AppState>(() => DEFAULT_STATE);
@@ -28,6 +38,7 @@ export default function Hunt() {
   const running = state.run != null && state.run.endedAt == null;
   // 촬영 중에는 오버레이를 건드리지 않는다. 기록을 끝낸 뒤 고정된 화면에서만 꾸민다.
   const [decorating, setDecorating] = useState(false);
+  const [decorateHint, setDecorateHint] = useState(false);
   const now = useTicker(running);
 
   // 기록 중에만 좌표를 쌓는다. 마지막 점은 사진 지점 기록에도 쓰인다.
@@ -72,6 +83,10 @@ export default function Hunt() {
       );
       // 종료하면 곧바로 꾸미기 모드로 넘어간다.
       setDecorating(true);
+      if (!isDecorateHintSeen()) {
+        setDecorateHint(true);
+        markDecorateHintSeen();
+      }
       return;
     }
     // 권한을 거부해도 그리드는 그대로 써야 하므로 여기서 끝낸다.
@@ -227,6 +242,16 @@ export default function Hunt() {
   if (normalizeTrack(state.run) == null) disabledOverlayKinds.push("course");
   if (state.run == null) disabledOverlayKinds.push("runtime");
 
+  // 요소를 탭하면 배경에 묻히지 않게 하는 방식이 순환한다(그림자 → 외곽선 → 판).
+  const handleCycleEmphasis = (kind: OverlayKind) => {
+    setState((s) => ({
+      ...s,
+      overlays: s.overlays.map((o) =>
+        o.kind === kind ? { ...o, emphasis: EMPHASIS_CYCLE[o.emphasis] } : o,
+      ),
+    }));
+  };
+
   const handleToggleOverlay = (kind: OverlayKind) => {
     setState((s) => ({
       ...s,
@@ -257,6 +282,7 @@ export default function Hunt() {
           state={state}
           now={now}
           onChange={(overlays) => setState((s) => ({ ...s, overlays }))}
+          onCycleEmphasis={handleCycleEmphasis}
         />
       )}
 
@@ -270,12 +296,25 @@ export default function Hunt() {
         />
       )}
 
+      {decorating && decorateHint && (
+        <div className="pointer-events-none absolute inset-x-0 top-4 z-50 flex justify-center px-6">
+          <p className="rounded-2xl bg-ink/85 px-4 py-2.5 text-center text-sm leading-tight text-paper shadow-lg backdrop-blur">
+            끌어서 이동 · 두 손가락으로 크기 조절
+            <br />
+            <b>탭하면 사진에 묻히지 않게 스타일이 바뀌어요</b>
+          </p>
+        </div>
+      )}
+
       {decorating && editingIndex === null && (
         <OverlayDock
           overlays={state.overlays}
           disabledKinds={disabledOverlayKinds}
           onToggle={handleToggleOverlay}
-          onDone={() => setDecorating(false)}
+          onDone={() => {
+            setDecorating(false);
+            setDecorateHint(false);
+          }}
         />
       )}
 

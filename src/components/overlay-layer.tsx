@@ -1,18 +1,26 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useGesture } from "@use-gesture/react";
-import type { AppState, OverlayAsset, Transform } from "../types";
-import { SCALE_BOUNDS } from "../lib/transform";
 import {
-  formatDuration,
-  normalizeTrack,
-  runDurationMs,
-} from "../lib/overlay";
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useGesture } from "@use-gesture/react";
+import type {
+  AppState,
+  OverlayAsset,
+  OverlayEmphasis,
+  Transform,
+} from "../types";
+import { SCALE_BOUNDS } from "../lib/transform";
+import { formatDuration, normalizeTrack, runDurationMs } from "../lib/overlay";
 import { findHuntColor } from "../lib/palette";
 
 type Props = {
   state: AppState;
   now: number;
   onChange: (next: OverlayAsset[]) => void;
+  onCycleEmphasis: (kind: OverlayAsset["kind"]) => void;
 };
 
 /**
@@ -21,7 +29,12 @@ type Props = {
  * 레이어 자체는 pointer-events: none이라 빈 곳을 누르면 아래 셀에 그대로
  * 전달된다. 요소 위에서만 제스처를 가져간다.
  */
-export default function OverlayLayer({ state, now, onChange }: Props) {
+export default function OverlayLayer({
+  state,
+  now,
+  onChange,
+  onCycleEmphasis,
+}: Props) {
   const track = useMemo(() => normalizeTrack(state.run), [state.run]);
   const color = findHuntColor(state.huntColor);
   const duration = runDurationMs(state.run, now);
@@ -36,8 +49,6 @@ export default function OverlayLayer({ state, now, onChange }: Props) {
     <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
       {state.overlays.map((asset) => {
         if (!asset.visible) return null;
-
-        // 데이터가 없으면 그리지 않는다. 별도 토글 없이 자연스럽게 숨는다.
         if (asset.kind === "course" && track == null) return null;
         if (asset.kind === "runtime" && state.run == null) return null;
 
@@ -46,17 +57,28 @@ export default function OverlayLayer({ state, now, onChange }: Props) {
             key={asset.kind}
             asset={asset}
             onCommit={(t) => update(asset.kind, t)}
+            onTap={() => onCycleEmphasis(asset.kind)}
           >
             {asset.kind === "course" && track != null && (
-              <CourseMark track={track} hex={color.hex} />
+              <CourseMark
+                track={track}
+                hex={color.hex}
+                emphasis={asset.emphasis}
+              />
             )}
             {asset.kind === "runtime" && (
-              <span className="text-2xl font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
+              <span
+                className="text-2xl font-bold"
+                style={textStyle(asset.emphasis)}
+              >
                 {formatDuration(duration)}
               </span>
             )}
             {asset.kind === "color" && (
-              <span className="flex items-center gap-1.5 text-lg font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
+              <span
+                className="flex items-center gap-1.5 text-lg font-bold"
+                style={textStyle(asset.emphasis)}
+              >
                 <span
                   className="inline-block h-4 w-4 rounded-full"
                   style={{ backgroundColor: color.hex }}
@@ -71,13 +93,30 @@ export default function OverlayLayer({ state, now, onChange }: Props) {
   );
 }
 
+/** 사진 위에서 글자가 묻히지 않게 하는 세 방식. compose.ts와 규약을 맞춘다. */
+const OUTLINE_SHADOW = [
+  "1px 1px 0 rgba(0,0,0,0.85)",
+  "-1px 1px 0 rgba(0,0,0,0.85)",
+  "1px -1px 0 rgba(0,0,0,0.85)",
+  "-1px -1px 0 rgba(0,0,0,0.85)",
+  "0 0 3px rgba(0,0,0,0.6)",
+].join(", ");
+
+function textStyle(emphasis: OverlayEmphasis): React.CSSProperties {
+  if (emphasis === "outline") return { textShadow: OUTLINE_SHADOW };
+  if (emphasis === "plate") return {};
+  return { textShadow: "0 1px 2px rgba(0,0,0,0.45)" };
+}
+
 function OverlayAssetView({
   asset,
   onCommit,
+  onTap,
   children,
 }: {
   asset: OverlayAsset;
   onCommit: (t: Transform) => void;
+  onTap: () => void;
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -102,8 +141,6 @@ function OverlayAssetView({
     return () => observer.disconnect();
   }, []);
 
-  // 마운트 시점의 t는 저장된 값 그대로라 다시 올릴 필요가 없다.
-  // 그냥 두면 진입할 때마다 의미 없는 state 갱신과 LocalStorage 쓰기가 일어난다.
   const mounted = useRef(false);
   useEffect(() => {
     if (!mounted.current) {
@@ -115,14 +152,17 @@ function OverlayAssetView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
-  // offsetX/Y는 프레임 대비 비율. 셀 편집기와 같은 규약이다.
   const frame = () => ref.current?.parentElement?.getBoundingClientRect();
 
   useGesture(
     {
       onPinch: ({ offset: [scale, angle] }) =>
         setT((cur) => ({ ...cur, scale, rotation: angle })),
-      onDrag: ({ offset: [px, py] }) => {
+      onDrag: ({ offset: [px, py], tap }) => {
+        if (tap) {
+          onTap();
+          return;
+        }
         const r = frame();
         if (!r) return;
         setT((cur) => ({
@@ -154,6 +194,7 @@ function OverlayAssetView({
         from: () => [tRef.current.scale, tRef.current.rotation],
       },
       drag: {
+        filterTaps: true,
         from: () => {
           const r = frame();
           if (!r) return [0, 0];
@@ -169,7 +210,9 @@ function OverlayAssetView({
   return (
     <div
       ref={ref}
-      className="pointer-events-auto absolute top-1/2 left-1/2 text-paper select-none"
+      // 텍스트 요소는 그 자체로는 너무 작아 두 손가락 핀치가 안 잡힌다.
+      // 패딩으로 히트 영역을 넓힌다.
+      className="pointer-events-auto absolute top-1/2 left-1/2 p-4 text-paper select-none"
       style={{
         touchAction: "none",
         transformOrigin: "center center",
@@ -179,7 +222,15 @@ function OverlayAssetView({
         willChange: "transform",
       }}
     >
-      {children}
+      <div
+        className={
+          asset.emphasis === "plate"
+            ? "rounded-2xl bg-ink/60 px-3 py-1.5 backdrop-blur-[2px]"
+            : ""
+        }
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -187,9 +238,11 @@ function OverlayAssetView({
 function CourseMark({
   track,
   hex,
+  emphasis,
 }: {
   track: NonNullable<ReturnType<typeof normalizeTrack>>;
   hex: string;
+  emphasis: OverlayEmphasis;
 }) {
   const d = track.points
     .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(4)},${p.y.toFixed(4)}`)
@@ -201,8 +254,23 @@ function CourseMark({
       height="180"
       viewBox="-0.06 -0.06 1.12 1.12"
       aria-hidden="true"
-      style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.45))" }}
+      style={
+        emphasis === "shadow"
+          ? { filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.45))" }
+          : undefined
+      }
     >
+      {/* 외곽선 모드에서는 같은 경로를 굵고 어둡게 한 번 더 깔아 대비를 만든다 */}
+      {emphasis === "outline" && (
+        <path
+          d={d}
+          fill="none"
+          stroke="rgba(0,0,0,0.8)"
+          strokeWidth={0.055}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
       <path
         d={d}
         fill="none"

@@ -1,4 +1,10 @@
-import type { OverlayAsset, OverlayKind, RunRecord, Transform } from "../types";
+import type {
+  OverlayAsset,
+  OverlayEmphasis,
+  OverlayKind,
+  RunRecord,
+  Transform,
+} from "../types";
 import { IDENTITY_TRANSFORM } from "./transform";
 
 export const OVERLAY_KINDS: OverlayKind[] = ["course", "runtime", "color"];
@@ -34,7 +40,9 @@ const LEGACY_DEFAULT_OFFSET: Record<OverlayKind, { x: number; y: number }> = {
 };
 
 export function migrateOverlays(overlays: OverlayAsset[]): OverlayAsset[] {
-  return overlays.map((o) => {
+  return overlays.map((raw) => {
+    // emphasis는 나중에 생긴 필드라 구버전 저장값에는 없다.
+    const o: OverlayAsset = { ...raw, emphasis: raw.emphasis ?? "shadow" };
     const legacy = LEGACY_DEFAULT_OFFSET[o.kind];
     const next = DEFAULT_OFFSET[o.kind];
     if (legacy == null || next == null) return o;
@@ -60,9 +68,16 @@ export function defaultOverlayTransform(kind: OverlayKind): Transform {
   };
 }
 
+export const EMPHASIS_CYCLE: Record<OverlayEmphasis, OverlayEmphasis> = {
+  shadow: "outline",
+  outline: "plate",
+  plate: "shadow",
+};
+
 export const DEFAULT_OVERLAYS: OverlayAsset[] = OVERLAY_KINDS.map((kind) => ({
   kind,
   visible: true,
+  emphasis: "shadow",
   transform: defaultOverlayTransform(kind),
 }));
 

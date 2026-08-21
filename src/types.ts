@@ -19,9 +19,13 @@ export type CellState = {
 /** 콜라주 위에 얹는 요소. 각각 사용자가 자유롭게 옮기고 키울 수 있다. */
 export type OverlayKind = "course" | "runtime" | "color";
 
+/** 사진 위에서 묻히지 않게 하는 방식. 요소를 탭하면 순환한다. */
+export type OverlayEmphasis = "shadow" | "outline" | "plate";
+
 export type OverlayAsset = {
   kind: OverlayKind;
   visible: boolean;
+  emphasis: OverlayEmphasis;
   /** 셀 이미지와 동일한 변환 규약 — 프레임 대비 비율 오프셋 */
   transform: Transform;
 };

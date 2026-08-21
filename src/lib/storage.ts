@@ -70,3 +70,21 @@ export function markEditHintSeen(): void {
     // 저장 실패해도 무시 — 다음 진입 때 다시 보여주는 게 최악의 경우
   }
 }
+
+const DECORATE_HINT_KEY = "colorhunt:hint:decorate-seen-v1";
+
+export function isDecorateHintSeen(): boolean {
+  try {
+    return localStorage.getItem(DECORATE_HINT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markDecorateHintSeen(): void {
+  try {
+    localStorage.setItem(DECORATE_HINT_KEY, "1");
+  } catch {
+    // 저장 실패해도 무시 — 다음 진입 때 다시 보여주는 게 최악의 경우
+  }
+}
