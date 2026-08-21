@@ -9,12 +9,47 @@ export const OVERLAY_LABEL: Record<OverlayKind, string> = {
   color: "색",
 };
 
-// 기본 배치는 서로 겹치지 않게 흩어둔다. 이후엔 사용자가 자유롭게 옮긴다.
+// 기본 배치는 서로 겹치지 않게 세로로 흩어둔다. 이후엔 사용자가 자유롭게 옮긴다.
+//
+// 오프셋은 프레임 크기 대비 비율이고 화면 하단 약 10%는 독이 차지한다.
+// y를 0.34보다 크게 잡으면 요소가 독(z-50) 뒤로 들어가 보이지도, 잡히지도 않는다.
 const DEFAULT_OFFSET: Record<OverlayKind, { x: number; y: number }> = {
+  course: { x: 0, y: 0 },
+  runtime: { x: 0, y: -0.34 },
+  color: { x: 0, y: 0.3 },
+};
+
+/**
+ * 드래그 오프셋을 %로 해석하던 시절의 기본값.
+ *
+ * 그때는 %가 "요소 자신"의 크기 기준이라 실제로는 몇 px밖에 안 움직였고,
+ * 그 전제로 큰 값을 넣어뒀다. px로 바로잡은 뒤로는 같은 값이 프레임의
+ * 38%가 되어 색 요소가 독 뒤로 숨는다. 저장된 값이 손대지 않은
+ * 기본값과 같을 때만 새 기본값으로 옮긴다.
+ */
+const LEGACY_DEFAULT_OFFSET: Record<OverlayKind, { x: number; y: number }> = {
   course: { x: 0, y: 0 },
   runtime: { x: -0.28, y: -0.38 },
   color: { x: 0.28, y: 0.38 },
 };
+
+export function migrateOverlays(overlays: OverlayAsset[]): OverlayAsset[] {
+  return overlays.map((o) => {
+    const legacy = LEGACY_DEFAULT_OFFSET[o.kind];
+    const next = DEFAULT_OFFSET[o.kind];
+    if (legacy == null || next == null) return o;
+    const untouched =
+      o.transform.offsetX === legacy.x &&
+      o.transform.offsetY === legacy.y &&
+      o.transform.scale === 1 &&
+      o.transform.rotation === 0;
+    if (!untouched) return o; // 사용자가 옮긴 건 건드리지 않는다
+    return {
+      ...o,
+      transform: { ...o.transform, offsetX: next.x, offsetY: next.y },
+    };
+  });
+}
 
 export const DEFAULT_OVERLAYS: OverlayAsset[] = OVERLAY_KINDS.map((kind) => ({
   kind,

@@ -1,7 +1,7 @@
 import type { AppState } from "../types";
 import { LAYOUT_DIMS, makeEmptyCells } from "./layout-utils";
 import { DEFAULT_HUNT_COLOR } from "./palette";
-import { DEFAULT_OVERLAYS } from "./overlay";
+import { DEFAULT_OVERLAYS, migrateOverlays } from "./overlay";
 
 const KEY = "colorhunt:state:v1";
 
@@ -26,7 +26,7 @@ export function loadState(): AppState {
       cells: parsed.cells ?? DEFAULT_STATE.cells,
       overflowCells: parsed.overflowCells ?? [],
       run: parsed.run,
-      overlays: parsed.overlays ?? DEFAULT_OVERLAYS,
+      overlays: migrateOverlays(parsed.overlays ?? DEFAULT_OVERLAYS),
     };
   } catch {
     return DEFAULT_STATE;
