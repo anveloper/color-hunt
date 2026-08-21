@@ -15,7 +15,7 @@ import CellEditor from "../components/cell-editor";
 import OverlayLayer from "../components/overlay-layer";
 import OverlayDock from "../components/overlay-dock";
 import type { OverlayKind } from "../types";
-import { normalizeTrack } from "../lib/overlay";
+import { defaultOverlayTransform, normalizeTrack } from "../lib/overlay";
 
 export default function Hunt() {
   const [state, setState] = useState<AppState>(() => DEFAULT_STATE);
@@ -230,9 +230,15 @@ export default function Hunt() {
   const handleToggleOverlay = (kind: OverlayKind) => {
     setState((s) => ({
       ...s,
-      overlays: s.overlays.map((o) =>
-        o.kind === kind ? { ...o, visible: !o.visible } : o,
-      ),
+      overlays: s.overlays.map((o) => {
+        if (o.kind !== kind) return o;
+        const visible = !o.visible;
+        // 껐다 켜면 원위치. 독 뒤나 화면 밖으로 밀어 넣어 다시 못 잡는
+        // 상황의 탈출구다. 버튼을 늘리지 않고 되돌릴 수 있다.
+        return visible
+          ? { ...o, visible, transform: defaultOverlayTransform(kind) }
+          : { ...o, visible };
+      }),
     }));
   };
 

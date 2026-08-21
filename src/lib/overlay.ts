@@ -1,4 +1,4 @@
-import type { OverlayAsset, OverlayKind, RunRecord } from "../types";
+import type { OverlayAsset, OverlayKind, RunRecord, Transform } from "../types";
 import { IDENTITY_TRANSFORM } from "./transform";
 
 export const OVERLAY_KINDS: OverlayKind[] = ["course", "runtime", "color"];
@@ -51,14 +51,19 @@ export function migrateOverlays(overlays: OverlayAsset[]): OverlayAsset[] {
   });
 }
 
-export const DEFAULT_OVERLAYS: OverlayAsset[] = OVERLAY_KINDS.map((kind) => ({
-  kind,
-  visible: true,
-  transform: {
+/** 해당 요소의 기본 배치. 껐다 켤 때 여기로 되돌린다. */
+export function defaultOverlayTransform(kind: OverlayKind): Transform {
+  return {
     ...IDENTITY_TRANSFORM,
     offsetX: DEFAULT_OFFSET[kind].x,
     offsetY: DEFAULT_OFFSET[kind].y,
-  },
+  };
+}
+
+export const DEFAULT_OVERLAYS: OverlayAsset[] = OVERLAY_KINDS.map((kind) => ({
+  kind,
+  visible: true,
+  transform: defaultOverlayTransform(kind),
 }));
 
 /** 진행 중이면 지금까지, 끝났으면 총 소요 시간(ms). */

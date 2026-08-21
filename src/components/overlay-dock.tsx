@@ -44,7 +44,7 @@ export default function OverlayDock({
                 {OVERLAY_LABEL[kind]}
               </span>
               <span className="text-[10px] leading-tight opacity-60">
-                {disabled ? "기록 없음" : on ? "켬" : "끔"}
+                {disabled ? "기록 없음" : on ? "켬" : "켜면 원위치"}
               </span>
             </TapButton>
           );
