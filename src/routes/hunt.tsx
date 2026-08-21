@@ -12,6 +12,7 @@ import { useRunTracker, useTicker } from "../hooks/use-run-tracker";
 import GridBoard from "../components/grid-board";
 import FloatingDock, { type AspectChoice } from "../components/floating-dock";
 import CellEditor from "../components/cell-editor";
+import OverlayLayer from "../components/overlay-layer";
 
 const LINE_CYCLE: Record<GridLineMode, GridLineMode> = {
   white: "black",
@@ -229,6 +230,14 @@ export default function Hunt() {
         onRequestPhoto={handleRequestPhoto}
         onActivateCell={handleActivateCell}
       />
+
+      {editingIndex === null && (
+        <OverlayLayer
+          state={state}
+          now={now}
+          onChange={(overlays) => setState((s) => ({ ...s, overlays }))}
+        />
+      )}
 
       {editingCell && editingIndex !== null && (
         <CellEditor
