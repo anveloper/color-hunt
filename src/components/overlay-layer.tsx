@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useGesture } from "@use-gesture/react";
 import type { AppState, OverlayAsset, Transform } from "../types";
 import { SCALE_BOUNDS } from "../lib/transform";
@@ -85,6 +85,23 @@ function OverlayAssetView({
   const tRef = useRef(t);
   tRef.current = t;
 
+  // offsetX/Y는 프레임 대비 비율이다. CSS translate의 %는 "요소 자신"의 크기를
+  // 기준으로 하므로 그대로 넣으면 요소가 손가락보다 훨씬 적게 움직인다.
+  // 셀 편집기와 같이 픽셀로 환산해서 적용한다.
+  const [frameSize, setFrameSize] = useState({ w: 0, h: 0 });
+  useLayoutEffect(() => {
+    const parent = ref.current?.parentElement;
+    if (!parent) return;
+    const update = () => {
+      const r = parent.getBoundingClientRect();
+      setFrameSize({ w: r.width, h: r.height });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, []);
+
   // 마운트 시점의 t는 저장된 값 그대로라 다시 올릴 필요가 없다.
   // 그냥 두면 진입할 때마다 의미 없는 state 갱신과 LocalStorage 쓰기가 일어난다.
   const mounted = useRef(false);
@@ -156,8 +173,9 @@ function OverlayAssetView({
       style={{
         touchAction: "none",
         transformOrigin: "center center",
-        // 중앙 기준 배치 후 비율 오프셋 → 회전 → 확대
-        transform: `translate(-50%, -50%) translate(${(t.offsetX * 100).toFixed(3)}%, ${(t.offsetY * 100).toFixed(3)}%) rotate(${t.rotation}deg) scale(${t.scale})`,
+        // 중앙 기준 배치 후 오프셋 → 회전 → 확대.
+        // 오프셋은 프레임 픽셀로 환산해야 손가락과 1:1로 움직인다.
+        transform: `translate(-50%, -50%) translate(${(t.offsetX * frameSize.w).toFixed(3)}px, ${(t.offsetY * frameSize.h).toFixed(3)}px) rotate(${t.rotation}deg) scale(${t.scale})`,
         willChange: "transform",
       }}
     >

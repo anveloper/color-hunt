@@ -13,6 +13,9 @@ import GridBoard from "../components/grid-board";
 import FloatingDock, { type AspectChoice } from "../components/floating-dock";
 import CellEditor from "../components/cell-editor";
 import OverlayLayer from "../components/overlay-layer";
+import OverlayDock from "../components/overlay-dock";
+import type { OverlayKind } from "../types";
+import { normalizeTrack } from "../lib/overlay";
 
 const LINE_CYCLE: Record<GridLineMode, GridLineMode> = {
   white: "black",
@@ -29,6 +32,8 @@ export default function Hunt() {
   const frameRef = useRef<HTMLDivElement>(null);
 
   const running = state.run != null && state.run.endedAt == null;
+  // 촬영 중에는 오버레이를 건드리지 않는다. 기록을 끝낸 뒤 고정된 화면에서만 꾸민다.
+  const [decorating, setDecorating] = useState(false);
   const now = useTicker(running);
 
   // 기록 중에만 좌표를 쌓는다. 마지막 점은 사진 지점 기록에도 쓰인다.
@@ -71,6 +76,8 @@ export default function Hunt() {
       setState((s) =>
         s.run == null ? s : { ...s, run: { ...s.run, endedAt: Date.now() } },
       );
+      // 종료하면 곧바로 꾸미기 모드로 넘어간다.
+      setDecorating(true);
       return;
     }
     // 권한을 거부해도 그리드는 그대로 써야 하므로 여기서 끝낸다.
@@ -221,6 +228,20 @@ export default function Hunt() {
   const editingCell =
     editingIndex !== null ? state.cells[editingIndex] : null;
 
+  // 데이터가 없는 요소는 켤 수 없다.
+  const disabledOverlayKinds: OverlayKind[] = [];
+  if (normalizeTrack(state.run) == null) disabledOverlayKinds.push("course");
+  if (state.run == null) disabledOverlayKinds.push("runtime");
+
+  const handleToggleOverlay = (kind: OverlayKind) => {
+    setState((s) => ({
+      ...s,
+      overlays: s.overlays.map((o) =>
+        o.kind === kind ? { ...o, visible: !o.visible } : o,
+      ),
+    }));
+  };
+
   return (
     <div ref={frameRef} className="absolute inset-0">
       <GridBoard
@@ -231,7 +252,7 @@ export default function Hunt() {
         onActivateCell={handleActivateCell}
       />
 
-      {editingIndex === null && (
+      {decorating && editingIndex === null && (
         <OverlayLayer
           state={state}
           now={now}
@@ -249,7 +270,16 @@ export default function Hunt() {
         />
       )}
 
-      {editingIndex === null && (
+      {decorating && editingIndex === null && (
+        <OverlayDock
+          overlays={state.overlays}
+          disabledKinds={disabledOverlayKinds}
+          onToggle={handleToggleOverlay}
+          onDone={() => setDecorating(false)}
+        />
+      )}
+
+      {!decorating && editingIndex === null && (
         <FloatingDock
           layout={state.layout}
           gridLineMode={state.gridLineMode}
@@ -257,6 +287,8 @@ export default function Hunt() {
           running={running}
           runDurationMs={runDurationMs(state.run, now)}
           onToggleRun={handleToggleRun}
+          canDecorate={state.run != null && !running}
+          onDecorate={() => setDecorating(true)}
           onCycleLayout={handleCycleLayout}
           onCycleLineMode={handleCycleLineMode}
           onSave={handleSave}

@@ -27,6 +27,8 @@ type Props = {
   running: boolean;
   runDurationMs: number;
   onToggleRun: () => void;
+  canDecorate: boolean;
+  onDecorate: () => void;
   onCycleLayout: () => void;
   onCycleLineMode: () => void;
   onSave: (choice: AspectChoice) => void;
@@ -45,6 +47,8 @@ export default function FloatingDock({
   running,
   runDurationMs,
   onToggleRun,
+  canDecorate,
+  onDecorate,
   onCycleLayout,
   onCycleLineMode,
   onSave,
@@ -77,6 +81,12 @@ export default function FloatingDock({
             sub={running ? "누르면 종료" : "시작하기"}
             accent={running}
           />
+          {canDecorate && (
+            <>
+              <Divider />
+              <DockButton onClick={onDecorate} label="꾸미기" sub="경로·시간·색" />
+            </>
+          )}
           <Divider />
           <DockButton onClick={onCycleLayout} label={layout} sub="레이아웃" />
           <Divider />
