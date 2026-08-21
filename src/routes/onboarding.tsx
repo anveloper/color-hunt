@@ -4,7 +4,13 @@ import {
   clearState,
   hasSavedWork,
   loadState,
+  saveState,
 } from "../lib/storage";
+import {
+  HUNT_COLORS,
+  findHuntColor,
+  randomHuntColor,
+} from "../lib/palette";
 import { ConfirmDialog } from "@toss/tds-mobile";
 import { isInToss } from "../lib/toss";
 import TapButton from "../components/tap-button";
@@ -20,10 +26,19 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [resumeAvailable, setResumeAvailable] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [huntColor, setHuntColor] = useState(() => loadState().huntColor);
 
   useLayoutEffect(() => {
-    setResumeAvailable(hasSavedWork(loadState()));
+    const state = loadState();
+    setResumeAvailable(hasSavedWork(state));
+    setHuntColor(state.huntColor);
   }, []);
+
+  // 오늘의 색은 그리드로 넘어가기 전에 정해지므로 여기서 바로 영속화한다.
+  const applyHuntColor = (id: string) => {
+    setHuntColor(id);
+    saveState({ ...loadState(), huntColor: id });
+  };
 
   const handleStart = () => {
     navigate("/hunt");
@@ -103,6 +118,8 @@ export default function Onboarding() {
         ))}
       </h1>
 
+      <HuntColorPicker selected={huntColor} onSelect={applyHuntColor} />
+
       <div className="flex flex-col items-center gap-3">
         <ActionButton
           label={resumeAvailable ? "이어하기" : "시작하기"}
@@ -169,6 +186,54 @@ export default function Onboarding() {
       </footer>
       )}
     </main>
+  );
+}
+
+function HuntColorPicker({
+  selected,
+  onSelect,
+}: {
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  const current = findHuntColor(selected);
+  return (
+    <section className="flex flex-col items-center gap-3">
+      <p className="text-base text-ink/70">
+        오늘의 색은 <b style={{ color: current.hex }}>{current.name}</b>
+      </p>
+
+      <div className="flex items-center gap-2">
+        {HUNT_COLORS.map((c) => {
+          const active = c.id === selected;
+          return (
+            <TapButton
+              key={c.id}
+              onClick={() => onSelect(c.id)}
+              ariaLabel={c.name}
+              className="rounded-full p-0.5 transition-transform active:scale-90"
+              // 선택 표시는 색 자체를 가리지 않도록 바깥 링으로 그린다.
+              style={{
+                borderRadius: "9999px",
+                boxShadow: active ? "0 0 0 2px var(--color-ink)" : "none",
+              }}
+            >
+              <span
+                className="block h-7 w-7 rounded-full"
+                style={{ backgroundColor: c.hex }}
+              />
+            </TapButton>
+          );
+        })}
+      </div>
+
+      <TapButton
+        onClick={() => onSelect(randomHuntColor(selected).id)}
+        className="rounded-full px-3 py-1 text-sm font-bold text-ink/55 transition-colors hover:text-ink"
+      >
+        랜덤으로 정하기
+      </TapButton>
+    </section>
   );
 }
 

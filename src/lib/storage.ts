@@ -1,13 +1,17 @@
 import type { AppState } from "../types";
 import { LAYOUT_DIMS, makeEmptyCells } from "./layout-utils";
+import { DEFAULT_HUNT_COLOR } from "./palette";
+import { DEFAULT_OVERLAYS } from "./overlay";
 
 const KEY = "colorhunt:state:v1";
 
 export const DEFAULT_STATE: AppState = {
   layout: "3x3",
+  huntColor: DEFAULT_HUNT_COLOR,
   gridLineMode: "white",
   cells: makeEmptyCells(LAYOUT_DIMS["3x3"].cols * LAYOUT_DIMS["3x3"].rows),
   overflowCells: [],
+  overlays: DEFAULT_OVERLAYS,
 };
 
 export function loadState(): AppState {
@@ -17,9 +21,12 @@ export function loadState(): AppState {
     const parsed = JSON.parse(raw) as Partial<AppState>;
     return {
       layout: parsed.layout ?? DEFAULT_STATE.layout,
+      huntColor: parsed.huntColor ?? DEFAULT_STATE.huntColor,
       gridLineMode: parsed.gridLineMode ?? DEFAULT_STATE.gridLineMode,
       cells: parsed.cells ?? DEFAULT_STATE.cells,
       overflowCells: parsed.overflowCells ?? [],
+      run: parsed.run,
+      overlays: parsed.overlays ?? DEFAULT_OVERLAYS,
     };
   } catch {
     return DEFAULT_STATE;
