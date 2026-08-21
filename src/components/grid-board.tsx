@@ -6,6 +6,7 @@ type Props = {
   state: AppState;
   loadingIndices: Set<number>;
   onUpload: (sources: (File | string)[], fromIndex: number) => void;
+  onRequestPhoto: (fromIndex: number, maxPickCount: number) => void;
   onActivateCell: (index: number) => void;
 };
 
@@ -19,6 +20,7 @@ export default function GridBoard({
   state,
   loadingIndices,
   onUpload,
+  onRequestPhoto,
   onActivateCell,
 }: Props) {
   const { cols, rows } = LAYOUT_DIMS[state.layout];
@@ -43,6 +45,7 @@ export default function GridBoard({
             state.cells.slice(i).filter((c) => !c.imageDataUrl).length
           }
           onUpload={onUpload}
+          onRequestPhoto={onRequestPhoto}
           onActivate={() => onActivateCell(i)}
         />
       ))}

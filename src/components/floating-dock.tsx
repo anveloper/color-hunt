@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { GridLineMode, Layout } from "../types";
 import TapButton from "./tap-button";
+import { formatDuration } from "../lib/overlay";
 
 export type AspectChoice = "device" | { w: number; h: number };
 
@@ -23,6 +24,9 @@ type Props = {
   layout: Layout;
   gridLineMode: GridLineMode;
   busy?: boolean;
+  running: boolean;
+  runDurationMs: number;
+  onToggleRun: () => void;
   onCycleLayout: () => void;
   onCycleLineMode: () => void;
   onSave: (choice: AspectChoice) => void;
@@ -38,6 +42,9 @@ export default function FloatingDock({
   layout,
   gridLineMode,
   busy,
+  running,
+  runDurationMs,
+  onToggleRun,
   onCycleLayout,
   onCycleLineMode,
   onSave,
@@ -64,6 +71,13 @@ export default function FloatingDock({
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-ink/15 bg-paper/85 px-3 py-2 shadow-xl backdrop-blur">
+          <DockButton
+            onClick={onToggleRun}
+            label={running ? formatDuration(runDurationMs) : "기록"}
+            sub={running ? "누르면 종료" : "시작하기"}
+            accent={running}
+          />
+          <Divider />
           <DockButton onClick={onCycleLayout} label={layout} sub="레이아웃" />
           <Divider />
           <DockButton

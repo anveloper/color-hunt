@@ -1,6 +1,7 @@
 import {
   Device,
   FetchAlbumPhotosPermissionError,
+  OpenCameraPermissionError,
   File as TossFile,
   type PermissionDialogResult,
   type PermissionStatus,
@@ -61,6 +62,29 @@ export async function pickPhotos(maxCount: number): Promise<string[]> {
       ? p.dataUri
       : `data:image/jpeg;base64,${p.dataUri}`,
   );
+}
+
+/**
+ * 토스 카메라로 한 장 촬영해 data URL로 돌려준다.
+ * 취소하거나 권한이 없으면 null — 호출 측은 평소대로 계속 동작해야 한다.
+ */
+export async function takePhoto(): Promise<string | null> {
+  if (!(await ensurePermission(Device.openCamera))) return null;
+  let photo;
+  try {
+    photo = await Device.openCamera({
+      base64: true,
+      maxWidth: PICK_MAX_WIDTH,
+    });
+  } catch (err) {
+    if (err instanceof OpenCameraPermissionError) return null;
+    throw err;
+  }
+  if (photo?.dataUri == null) return null;
+  // getPhotos와 마찬가지로 base64: true면 접두사가 없다.
+  return photo.dataUri.startsWith("data:")
+    ? photo.dataUri
+    : `data:image/jpeg;base64,${photo.dataUri}`;
 }
 
 /** File.saveBase64를 쓸 수 있는 토스앱 버전인지. */

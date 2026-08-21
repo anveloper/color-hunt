@@ -4,6 +4,11 @@ import { applyLayoutChange, nextLayout } from "../lib/layout-utils";
 import { DEFAULT_STATE, loadState, saveState } from "../lib/storage";
 import { composeAndDownload } from "../lib/compose";
 import { resizeToDataUrl } from "../lib/image";
+import { ensureLocationPermission } from "../lib/location";
+import { pickPhotos, takePhoto } from "../lib/toss";
+import { useBottomSheet } from "@toss/tds-mobile";
+import { runDurationMs } from "../lib/overlay";
+import { useRunTracker, useTicker } from "../hooks/use-run-tracker";
 import GridBoard from "../components/grid-board";
 import FloatingDock, { type AspectChoice } from "../components/floating-dock";
 import CellEditor from "../components/cell-editor";
@@ -21,6 +26,59 @@ export default function Hunt() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [loadingIndices, setLoadingIndices] = useState<Set<number>>(new Set());
   const frameRef = useRef<HTMLDivElement>(null);
+
+  const running = state.run != null && state.run.endedAt == null;
+  const now = useTicker(running);
+
+  // 기록 중에만 좌표를 쌓는다. 마지막 점은 사진 지점 기록에도 쓰인다.
+  useRunTracker(running, (p) => {
+    setState((s) =>
+      s.run == null || s.run.endedAt != null
+        ? s
+        : { ...s, run: { ...s.run, points: [...s.run.points, p] } },
+    );
+  });
+
+  const { openTwoButtonSheet } = useBottomSheet();
+
+  /**
+   * 앱인토스에서 빈 셀을 눌렀을 때 사진 출처를 고르게 한다.
+   * 웹은 <input accept="image/*">가 OS 차원에서 이미 앨범/카메라를 모두 준다.
+   */
+  const handleRequestPhoto = async (fromIndex: number, maxPickCount: number) => {
+    const action = await openTwoButtonSheet({
+      header: "사진을 어떻게 넣을까요?",
+      leftButton: "앨범에서 고르기",
+      rightButton: "사진 찍기",
+    });
+    try {
+      if (action === "leftButtonClick") {
+        const urls = await pickPhotos(maxPickCount);
+        if (urls.length > 0) handleUpload(urls, fromIndex);
+      } else if (action === "rightButtonClick") {
+        const url = await takePhoto();
+        if (url) handleUpload([url], fromIndex);
+      }
+    } catch (err) {
+      // 권한 거부/취소로 못 가져와도 나머지 기능은 그대로 동작해야 한다.
+      console.error("[colorhunt] photo pick failed:", err);
+    }
+  };
+
+  const handleToggleRun = async () => {
+    if (running) {
+      setState((s) =>
+        s.run == null ? s : { ...s, run: { ...s.run, endedAt: Date.now() } },
+      );
+      return;
+    }
+    // 권한을 거부해도 그리드는 그대로 써야 하므로 여기서 끝낸다.
+    if (!(await ensureLocationPermission())) return;
+    setState((s) => ({
+      ...s,
+      run: { startedAt: Date.now(), points: [], spots: [] },
+    }));
+  };
 
   useLayoutEffect(() => {
     setState(loadState());
@@ -62,7 +120,21 @@ export default function Hunt() {
               imageDataUrl: url,
               transform: undefined,
             };
-            return { ...s, cells };
+            // 사진을 넣은 순간의 위치를 지점으로 남긴다. 앨범 사진에는
+            // 촬영 위치가 없어서(EXIF는 리사이즈 과정에서 사라진다)
+            // 이 방법 말고는 지점을 알 수 없다.
+            const last = s.run?.points.at(-1);
+            const run =
+              s.run && s.run.endedAt == null && last
+                ? {
+                    ...s.run,
+                    spots: [
+                      ...s.run.spots.filter((sp) => sp.cellIndex !== targetIndex),
+                      { cellIndex: targetIndex, point: last },
+                    ],
+                  }
+                : s.run;
+            return { ...s, cells, run };
           });
         } catch (err) {
           console.error("[colorhunt] image processing failed:", err);
@@ -154,6 +226,7 @@ export default function Hunt() {
         state={state}
         loadingIndices={loadingIndices}
         onUpload={handleUpload}
+        onRequestPhoto={handleRequestPhoto}
         onActivateCell={handleActivateCell}
       />
 
@@ -172,6 +245,9 @@ export default function Hunt() {
           layout={state.layout}
           gridLineMode={state.gridLineMode}
           busy={busy}
+          running={running}
+          runDurationMs={runDurationMs(state.run, now)}
+          onToggleRun={handleToggleRun}
           onCycleLayout={handleCycleLayout}
           onCycleLineMode={handleCycleLineMode}
           onSave={handleSave}

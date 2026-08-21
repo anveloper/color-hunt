@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CellState } from "../types";
 import { getTransform } from "../lib/transform";
-import { isInToss, pickPhotos } from "../lib/toss";
+import { isInToss } from "../lib/toss";
 
 type Props = {
   cell: CellState;
@@ -10,6 +10,8 @@ type Props = {
   /** 이 셀부터 뒤로 남은 빈 셀 수 — 앱인토스 앨범에서 한 번에 고를 최대 장수 */
   maxPickCount: number;
   onUpload: (sources: (File | string)[], fromIndex: number) => void;
+  /** 앱인토스에서 사진 출처(앨범/카메라)를 고르게 한다. 웹에서는 쓰이지 않는다. */
+  onRequestPhoto: (fromIndex: number, maxPickCount: number) => void;
   onActivate: () => void;
 };
 
@@ -19,6 +21,7 @@ export default function GridCell({
   loading,
   maxPickCount,
   onUpload,
+  onRequestPhoto,
   onActivate,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,20 +72,15 @@ export default function GridCell({
     return `translate(${tx}px, ${ty}px) rotate(${t.rotation}deg) scale(${t.scale})`;
   }, [t, cellSize]);
 
-  const handleClick = async () => {
+  const handleClick = () => {
     if (filled) {
       onActivate();
       return;
     }
-    // 앱인토스 웹뷰에서는 파일 피커 대신 네이티브 앨범을 연다.
+    // 앱인토스에서는 앨범/카메라를 고르는 시트를 부모가 띄운다.
+    // 웹은 <input accept="image/*">가 OS 차원에서 이미 둘 다 제공한다.
     if (isInToss()) {
-      try {
-        const dataUrls = await pickPhotos(maxPickCount);
-        if (dataUrls.length > 0) onUpload(dataUrls, index);
-      } catch (err) {
-        // 권한 거부/취소로 못 가져와도 나머지 기능은 그대로 동작해야 한다.
-        console.error("[colorhunt] toss album pick failed:", err);
-      }
+      onRequestPhoto(index, maxPickCount);
       return;
     }
     inputRef.current?.click();
@@ -92,7 +90,7 @@ export default function GridCell({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
-    void handleClick();
+    handleClick();
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
