@@ -39,6 +39,8 @@ export default function Hunt() {
   // 촬영 중에는 오버레이를 건드리지 않는다. 기록을 끝낸 뒤 고정된 화면에서만 꾸민다.
   const [decorating, setDecorating] = useState(false);
   const [decorateHint, setDecorateHint] = useState(false);
+  // 꾸미기 모드에서 한 번에 하나만 조작한다.
+  const [selectedOverlay, setSelectedOverlay] = useState<OverlayKind | null>(null);
   const now = useTicker(running);
 
   // 기록 중에만 좌표를 쌓는다. 마지막 점은 사진 지점 기록에도 쓰인다.
@@ -253,6 +255,8 @@ export default function Hunt() {
   };
 
   const handleToggleOverlay = (kind: OverlayKind) => {
+    // 독에서 고른 요소를 곧바로 조작 대상으로 삼는다.
+    setSelectedOverlay(kind);
     setState((s) => ({
       ...s,
       overlays: s.overlays.map((o) => {
@@ -281,6 +285,8 @@ export default function Hunt() {
         <OverlayLayer
           state={state}
           now={now}
+          selected={selectedOverlay}
+          onSelect={setSelectedOverlay}
           onChange={(overlays) => setState((s) => ({ ...s, overlays }))}
           onCycleEmphasis={handleCycleEmphasis}
         />
@@ -299,9 +305,9 @@ export default function Hunt() {
       {decorating && decorateHint && (
         <div className="pointer-events-none absolute inset-x-0 top-4 z-50 flex justify-center px-6">
           <p className="rounded-2xl bg-ink/85 px-4 py-2.5 text-center text-sm leading-tight text-paper shadow-lg backdrop-blur">
-            끌어서 이동 · 두 손가락으로 크기 조절
+            요소를 탭해서 하나 고르고, 끌거나 두 손가락으로 조절해요
             <br />
-            <b>탭하면 사진에 묻히지 않게 스타일이 바뀌어요</b>
+            <b>고른 요소를 다시 탭하면 배경에 묻히지 않게 바뀌어요</b>
           </p>
         </div>
       )}
@@ -314,6 +320,7 @@ export default function Hunt() {
           onDone={() => {
             setDecorating(false);
             setDecorateHint(false);
+            setSelectedOverlay(null);
           }}
         />
       )}

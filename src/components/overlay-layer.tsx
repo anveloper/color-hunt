@@ -1,15 +1,10 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useGesture } from "@use-gesture/react";
 import type {
   AppState,
   OverlayAsset,
   OverlayEmphasis,
+  OverlayKind,
   Transform,
 } from "../types";
 import { SCALE_BOUNDS } from "../lib/transform";
@@ -19,74 +14,216 @@ import { findHuntColor } from "../lib/palette";
 type Props = {
   state: AppState;
   now: number;
+  selected: OverlayKind | null;
+  onSelect: (kind: OverlayKind | null) => void;
   onChange: (next: OverlayAsset[]) => void;
-  onCycleEmphasis: (kind: OverlayAsset["kind"]) => void;
+  onCycleEmphasis: (kind: OverlayKind) => void;
 };
 
 /**
- * 콜라주 위에 얹는 요소들. 각각 독립적으로 옮기고 키울 수 있다.
+ * 콜라주 위에 얹는 요소들.
  *
- * 레이어 자체는 pointer-events: none이라 빈 곳을 누르면 아래 셀에 그대로
- * 전달된다. 요소 위에서만 제스처를 가져간다.
+ * 한 번에 하나만 선택되고, 제스처는 레이어 전체에서 받아 선택된 요소에만
+ * 적용한다. 요소별로 제스처를 걸면 경로 SVG(180px)가 텍스트 위를 덮어
+ * 핀치의 두 번째 손가락을 가로채고, 두 손가락으로 서로 다른 요소가
+ * 동시에 움직이는 문제가 생긴다.
  */
 export default function OverlayLayer({
   state,
   now,
+  selected,
+  onSelect,
   onChange,
   onCycleEmphasis,
 }: Props) {
+  const layerRef = useRef<HTMLDivElement>(null);
   const track = useMemo(() => normalizeTrack(state.run), [state.run]);
   const color = findHuntColor(state.huntColor);
   const duration = runDurationMs(state.run, now);
 
-  const update = (kind: OverlayAsset["kind"], transform: Transform) => {
+  const [frameSize, setFrameSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = layerRef.current;
+    if (!el) return;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      setFrameSize({ w: r.width, h: r.height });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const selectedAsset =
+    state.overlays.find((o) => o.kind === selected && o.visible) ?? null;
+
+  // 제스처 중에는 로컬 상태로만 갱신하고, 끝날 때 한 번만 올린다.
+  // 매 프레임 앱 상태를 갱신하면 base64 사진이 통째로 든 state가
+  // LocalStorage에 계속 다시 쓰인다.
+  const [liveT, setLiveT] = useState<Transform | null>(null);
+  const liveRef = useRef<Transform | null>(null);
+  liveRef.current = liveT;
+
+  const baseT = selectedAsset?.transform ?? null;
+  const activeT = liveT ?? baseT;
+
+  const commit = (t: Transform) => {
+    if (selected == null) return;
     onChange(
-      state.overlays.map((o) => (o.kind === kind ? { ...o, transform } : o)),
+      state.overlays.map((o) => (o.kind === selected ? { ...o, transform: t } : o)),
     );
+    setLiveT(null);
+  };
+
+  const current = () => liveRef.current ?? baseT;
+
+  useGesture(
+    {
+      onPinch: ({ offset: [scale, angle], last }) => {
+        const cur = current();
+        if (cur == null) return;
+        const next = { ...cur, scale, rotation: angle };
+        last ? commit(next) : setLiveT(next);
+      },
+      onDrag: ({ offset: [px, py], last }) => {
+        const cur = current();
+        if (cur == null || frameSize.w === 0) return;
+        const next = {
+          ...cur,
+          offsetX: px / frameSize.w,
+          offsetY: py / frameSize.h,
+        };
+        last ? commit(next) : setLiveT(next);
+      },
+      onWheel: ({ event, delta: [, dy], last }) => {
+        event.preventDefault();
+        const cur = current();
+        if (cur == null) return;
+        const factor = Math.exp(-dy * 0.0015);
+        const next = {
+          ...cur,
+          scale: Math.min(
+            SCALE_BOUNDS.max,
+            Math.max(SCALE_BOUNDS.min, cur.scale * factor),
+          ),
+        };
+        last ? commit(next) : setLiveT(next);
+      },
+    },
+    {
+      target: layerRef,
+      enabled: selectedAsset != null,
+      eventOptions: { passive: false },
+      pinch: {
+        scaleBounds: SCALE_BOUNDS,
+        rubberband: true,
+        from: () => {
+          const cur = current();
+          return cur ? [cur.scale, cur.rotation] : [1, 0];
+        },
+      },
+      drag: {
+        filterTaps: true,
+        from: () => {
+          const cur = current();
+          if (cur == null || frameSize.w === 0) return [0, 0];
+          return [cur.offsetX * frameSize.w, cur.offsetY * frameSize.h];
+        },
+      },
+    },
+  );
+
+  // 선택된 요소는 pointerEvents: none이라 자기 onClick이 안 온다.
+  // 클릭 좌표가 그 요소 안인지로 판정한다.
+  const selectedElRef = useRef<HTMLDivElement | null>(null);
+
+  const handleLayerClick = (e: React.MouseEvent) => {
+    const el = selectedElRef.current;
+    if (el != null && selected != null) {
+      const r = el.getBoundingClientRect();
+      const inside =
+        e.clientX >= r.left &&
+        e.clientX <= r.right &&
+        e.clientY >= r.top &&
+        e.clientY <= r.bottom;
+      if (inside) {
+        onCycleEmphasis(selected);
+        return;
+      }
+    }
+    if (e.target === e.currentTarget) onSelect(null);
   };
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+    <div
+      ref={layerRef}
+      className="absolute inset-0 z-30 overflow-hidden"
+      style={{ touchAction: "none" }}
+      onClick={handleLayerClick}
+    >
       {state.overlays.map((asset) => {
         if (!asset.visible) return null;
         if (asset.kind === "course" && track == null) return null;
         if (asset.kind === "runtime" && state.run == null) return null;
 
+        const isSelected = asset.kind === selected;
+        const t = isSelected && activeT != null ? activeT : asset.transform;
+
         return (
-          <OverlayAssetView
+          <div
             key={asset.kind}
-            asset={asset}
-            onCommit={(t) => update(asset.kind, t)}
-            onTap={() => onCycleEmphasis(asset.kind)}
+            ref={isSelected ? selectedElRef : undefined}
+            onClick={() => onSelect(asset.kind)}
+            className="absolute top-1/2 left-1/2 p-4 text-paper select-none"
+            style={{
+              // 선택된 요소는 레이어가 제스처를 받으므로 스스로는 통과시킨다.
+              // 그래야 경로 위에서 시작한 핀치도 정상 동작한다.
+              pointerEvents: isSelected ? "none" : "auto",
+              transformOrigin: "center center",
+              transform: `translate(-50%, -50%) translate(${(t.offsetX * frameSize.w).toFixed(3)}px, ${(t.offsetY * frameSize.h).toFixed(3)}px) rotate(${t.rotation}deg) scale(${t.scale})`,
+              willChange: "transform",
+            }}
           >
-            {asset.kind === "course" && track != null && (
-              <CourseMark
-                track={track}
-                hex={color.hex}
-                emphasis={asset.emphasis}
-              />
-            )}
-            {asset.kind === "runtime" && (
-              <span
-                className="text-2xl font-bold"
-                style={textStyle(asset.emphasis)}
-              >
-                {formatDuration(duration)}
-              </span>
-            )}
-            {asset.kind === "color" && (
-              <span
-                className="flex items-center gap-1.5 text-lg font-bold"
-                style={textStyle(asset.emphasis)}
-              >
-                <span
-                  className="inline-block h-4 w-4 rounded-full"
-                  style={{ backgroundColor: color.hex }}
+            <div
+              className={
+                (asset.emphasis === "plate"
+                  ? "rounded-2xl bg-ink/60 px-3 py-1.5 backdrop-blur-[2px] "
+                  : "") +
+                (isSelected
+                  ? "rounded-2xl outline-2 outline-dashed outline-paper/70 outline-offset-4"
+                  : "")
+              }
+            >
+              {asset.kind === "course" && track != null && (
+                <CourseMark
+                  track={track}
+                  hex={color.hex}
+                  emphasis={asset.emphasis}
                 />
-                {color.name}
-              </span>
-            )}
-          </OverlayAssetView>
+              )}
+              {asset.kind === "runtime" && (
+                <span
+                  className="text-2xl font-bold"
+                  style={textStyle(asset.emphasis)}
+                >
+                  {formatDuration(duration)}
+                </span>
+              )}
+              {asset.kind === "color" && (
+                <span
+                  className="flex items-center gap-1.5 text-lg font-bold"
+                  style={textStyle(asset.emphasis)}
+                >
+                  <span
+                    className="inline-block h-4 w-4 rounded-full"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  {color.name}
+                </span>
+              )}
+            </div>
+          </div>
         );
       })}
     </div>
@@ -106,133 +243,6 @@ function textStyle(emphasis: OverlayEmphasis): React.CSSProperties {
   if (emphasis === "outline") return { textShadow: OUTLINE_SHADOW };
   if (emphasis === "plate") return {};
   return { textShadow: "0 1px 2px rgba(0,0,0,0.45)" };
-}
-
-function OverlayAssetView({
-  asset,
-  onCommit,
-  onTap,
-  children,
-}: {
-  asset: OverlayAsset;
-  onCommit: (t: Transform) => void;
-  onTap: () => void;
-  children: React.ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [t, setT] = useState<Transform>(asset.transform);
-  const tRef = useRef(t);
-  tRef.current = t;
-
-  // offsetX/Y는 프레임 대비 비율이다. CSS translate의 %는 "요소 자신"의 크기를
-  // 기준으로 하므로 그대로 넣으면 요소가 손가락보다 훨씬 적게 움직인다.
-  // 셀 편집기와 같이 픽셀로 환산해서 적용한다.
-  const [frameSize, setFrameSize] = useState({ w: 0, h: 0 });
-  useLayoutEffect(() => {
-    const parent = ref.current?.parentElement;
-    if (!parent) return;
-    const update = () => {
-      const r = parent.getBoundingClientRect();
-      setFrameSize({ w: r.width, h: r.height });
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(parent);
-    return () => observer.disconnect();
-  }, []);
-
-  const mounted = useRef(false);
-  useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
-    onCommit(t);
-    // onCommit은 매 렌더 새 함수라 의존성에 넣으면 무한 루프가 된다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t]);
-
-  const frame = () => ref.current?.parentElement?.getBoundingClientRect();
-
-  useGesture(
-    {
-      onPinch: ({ offset: [scale, angle] }) =>
-        setT((cur) => ({ ...cur, scale, rotation: angle })),
-      onDrag: ({ offset: [px, py], tap }) => {
-        if (tap) {
-          onTap();
-          return;
-        }
-        const r = frame();
-        if (!r) return;
-        setT((cur) => ({
-          ...cur,
-          offsetX: px / r.width,
-          offsetY: py / r.height,
-        }));
-      },
-      onWheel: ({ event, delta: [, dy] }) => {
-        event.preventDefault();
-        setT((cur) => {
-          const factor = Math.exp(-dy * 0.0015);
-          return {
-            ...cur,
-            scale: Math.min(
-              SCALE_BOUNDS.max,
-              Math.max(SCALE_BOUNDS.min, cur.scale * factor),
-            ),
-          };
-        });
-      },
-    },
-    {
-      target: ref,
-      eventOptions: { passive: false },
-      pinch: {
-        scaleBounds: SCALE_BOUNDS,
-        rubberband: true,
-        from: () => [tRef.current.scale, tRef.current.rotation],
-      },
-      drag: {
-        filterTaps: true,
-        from: () => {
-          const r = frame();
-          if (!r) return [0, 0];
-          return [
-            tRef.current.offsetX * r.width,
-            tRef.current.offsetY * r.height,
-          ];
-        },
-      },
-    },
-  );
-
-  return (
-    <div
-      ref={ref}
-      // 텍스트 요소는 그 자체로는 너무 작아 두 손가락 핀치가 안 잡힌다.
-      // 패딩으로 히트 영역을 넓힌다.
-      className="pointer-events-auto absolute top-1/2 left-1/2 p-4 text-paper select-none"
-      style={{
-        touchAction: "none",
-        transformOrigin: "center center",
-        // 중앙 기준 배치 후 오프셋 → 회전 → 확대.
-        // 오프셋은 프레임 픽셀로 환산해야 손가락과 1:1로 움직인다.
-        transform: `translate(-50%, -50%) translate(${(t.offsetX * frameSize.w).toFixed(3)}px, ${(t.offsetY * frameSize.h).toFixed(3)}px) rotate(${t.rotation}deg) scale(${t.scale})`,
-        willChange: "transform",
-      }}
-    >
-      <div
-        className={
-          asset.emphasis === "plate"
-            ? "rounded-2xl bg-ink/60 px-3 py-1.5 backdrop-blur-[2px]"
-            : ""
-        }
-      >
-        {children}
-      </div>
-    </div>
-  );
 }
 
 function CourseMark({
@@ -260,7 +270,6 @@ function CourseMark({
           : undefined
       }
     >
-      {/* 외곽선 모드에서는 같은 경로를 굵고 어둡게 한 번 더 깔아 대비를 만든다 */}
       {emphasis === "outline" && (
         <path
           d={d}
