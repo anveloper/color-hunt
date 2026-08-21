@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { GridLineMode, Layout } from "../types";
+import TapButton from "./tap-button";
 
 export type AspectChoice = "device" | { w: number; h: number };
 
@@ -85,9 +86,8 @@ export default function FloatingDock({
                 className="absolute bottom-full right-0 z-50 mb-3 w-56 overflow-hidden rounded-2xl border border-ink/15 bg-paper shadow-xl"
               >
                 {ASPECT_OPTIONS.map((opt) => (
-                  <button
+                  <TapButton
                     key={opt.id}
-                    type="button"
                     role="menuitem"
                     onClick={() => handleSelect(opt.choice)}
                     className="block w-full px-4 py-2.5 text-left transition-colors hover:bg-ink/5 active:bg-ink/10"
@@ -98,7 +98,7 @@ export default function FloatingDock({
                     <div className="text-xs leading-tight text-ink/55">
                       {opt.hint}
                     </div>
-                  </button>
+                  </TapButton>
                 ))}
               </div>
             )}
@@ -119,18 +119,17 @@ type ButtonProps = {
 
 function DockButton({ label, sub, onClick, disabled, accent }: ButtonProps) {
   return (
-    <button
-      type="button"
+    <TapButton
       onClick={onClick}
       disabled={disabled}
       className={
-        "flex flex-col items-center justify-center rounded-full px-4 py-1.5 text-center transition-transform active:scale-95 disabled:opacity-50 " +
+        "flex flex-col items-center justify-center rounded-full px-4 py-1.5 text-center transition-transform active:scale-95 " +
         (accent ? "bg-ink text-paper" : "text-ink hover:bg-ink/5")
       }
     >
       <span className="text-base leading-none font-bold">{label}</span>
       <span className="text-[10px] leading-tight opacity-60">{sub}</span>
-    </button>
+    </TapButton>
   );
 }
 

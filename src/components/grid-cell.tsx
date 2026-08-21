@@ -22,7 +22,7 @@ export default function GridCell({
   onActivate,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const cellRef = useRef<HTMLButtonElement>(null);
+  const cellRef = useRef<HTMLDivElement>(null);
   const filled = !!cell.imageDataUrl;
 
   // 자연 크기 + 셀 크기 → cover 픽셀 사이즈로 렌더해야 수정 모드와 동일하게 동작
@@ -88,6 +88,13 @@ export default function GridCell({
     inputRef.current?.click();
   };
 
+  // <div role="button">은 키보드 활성화를 직접 처리해야 한다.
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    void handleClick();
+  };
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
@@ -97,12 +104,21 @@ export default function GridCell({
   };
 
   return (
-    <button
+    // <button>이 아니라 <div>인 이유가 두 가지 있다.
+    // 1. TDS 전역 리셋이 button { overflow: visible; border-radius: 0 }을 무레이어로
+    //    주입해서, @layer utilities 안에 있는 Tailwind의 overflow-hidden을 이겨버린다.
+    //    (레이어 규칙은 specificity와 무관하게 무레이어 규칙에 진다.)
+    //    div는 리셋 대상이 아니라 클래스가 그대로 먹는다.
+    // 2. <button>의 콘텐츠 모델은 interactive 자손을 허용하지 않는데
+    //    아래에 <input type="file">이 들어간다.
+    <div
       ref={cellRef}
-      type="button"
+      role="button"
+      tabIndex={0}
       data-cell-index={index}
       onClick={handleClick}
-      className="relative flex items-center justify-center overflow-hidden bg-paper/40 select-none"
+      onKeyDown={handleKeyDown}
+      className="relative flex cursor-pointer items-center justify-center overflow-hidden bg-paper/40 select-none"
       style={{ touchAction: "manipulation" }}
       aria-label={filled ? "사진 수정" : "사진 추가"}
     >
@@ -138,6 +154,6 @@ export default function GridCell({
         className="hidden"
         onChange={handleFile}
       />
-    </button>
+    </div>
   );
 }

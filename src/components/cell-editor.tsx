@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import TapButton from "./tap-button";
 import { useGesture } from "@use-gesture/react";
 import type { CellState, Layout, Transform } from "../types";
 import { LAYOUT_DIMS } from "../lib/layout-utils";
@@ -272,11 +273,10 @@ function HintToast({
 }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-4 z-40 flex justify-center px-6">
-      <button
-        type="button"
+      <TapButton
         onClick={onDismiss}
         className="pointer-events-auto rounded-2xl bg-ink/85 px-5 py-2.5 text-paper shadow-lg backdrop-blur transition-opacity"
-        aria-label="도움말 닫기"
+        ariaLabel="도움말 닫기"
       >
         <div className="flex flex-col items-center gap-0.5 text-sm leading-tight">
           <span className={coarse ? "opacity-45" : "font-bold"}>
@@ -286,7 +286,7 @@ function HintToast({
             한 손가락 = 이동 · 두 손가락 = 확대/회전
           </span>
         </div>
-      </button>
+      </TapButton>
     </div>
   );
 }
@@ -306,14 +306,13 @@ function EditButton({ label, sub, onClick, accent, tone }: EditButtonProps) {
       ? "text-pencil-red hover:bg-pencil-red/10"
       : "text-ink hover:bg-ink/5";
   return (
-    <button
-      type="button"
+    <TapButton
       onClick={onClick}
       className={`flex flex-col items-center justify-center rounded-full px-4 py-1.5 text-center transition-transform active:scale-95 ${cls}`}
     >
       <span className="text-base leading-none font-bold">{label}</span>
       <span className="text-[10px] leading-tight opacity-60">{sub}</span>
-    </button>
+    </TapButton>
   );
 }
 

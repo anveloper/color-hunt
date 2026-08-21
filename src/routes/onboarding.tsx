@@ -7,6 +7,7 @@ import {
 } from "../lib/storage";
 import { ConfirmDialog } from "@toss/tds-mobile";
 import { isInToss } from "../lib/toss";
+import TapButton from "../components/tap-button";
 
 const TITLE_CHARS: Array<{ ch: string; color: string; rotate: number }> = [
   { ch: "컬", color: "var(--color-pencil-red)", rotate: -3 },
@@ -109,13 +110,12 @@ export default function Onboarding() {
         />
 
         {resumeAvailable && (
-          <button
-            type="button"
+          <TapButton
             onClick={() => setConfirmOpen(true)}
             className="rounded-full px-4 py-2 text-base font-bold text-ink/62 transition-colors hover:text-ink active:scale-95"
           >
             지우고 다시하기
-          </button>
+          </TapButton>
         )}
       </div>
 
@@ -180,10 +180,9 @@ function ActionButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <TapButton
       onClick={onClick}
-      className="relative px-12 py-3 text-3xl font-bold text-ink transition-transform active:scale-95"
+      className="relative flex items-center justify-center px-12 py-3 text-3xl font-bold text-ink transition-transform active:scale-95"
       style={{ minWidth: "13rem" }}
     >
       <svg
@@ -224,6 +223,6 @@ function ActionButton({
         />
       </svg>
       <span className="relative">{label}</span>
-    </button>
+    </TapButton>
   );
 }
