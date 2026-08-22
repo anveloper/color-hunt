@@ -39,6 +39,7 @@ export default function Hunt() {
   // 촬영 중에는 오버레이를 건드리지 않는다. 기록을 끝낸 뒤 고정된 화면에서만 꾸민다.
   const [decorating, setDecorating] = useState(false);
   const [decorateHint, setDecorateHint] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   // 꾸미기 모드에서 한 번에 하나만 조작한다.
   const [selectedOverlay, setSelectedOverlay] = useState<OverlayKind | null>(null);
   const now = useTicker(running);
@@ -91,8 +92,30 @@ export default function Hunt() {
       }
       return;
     }
+
+    // 위치 권한을 요청하기 전에 무엇에 쓰는지 먼저 알린다.
+    // 시스템 권한 팝업만 띄우면 사용자는 "기록" 버튼이 왜 위치를 묻는지 알 수 없다.
+    const agreed = await openTwoButtonSheet({
+      header: "위치를 기록할까요?",
+      leftButton: "안 할래요",
+      rightButton: "좋아요",
+      children: (
+        <p className="px-1 pb-2 text-base leading-relaxed text-ink/70">
+          달린 경로와 사진을 찍은 지점을 남겨서, 사진 위에 함께 담을 수 있어요.
+          <br />
+          위치는 기기 안에만 저장되고 어디에도 전송되지 않아요.
+          <br />
+          허용하지 않아도 사진을 모으고 저장하는 건 그대로 할 수 있어요.
+        </p>
+      ),
+    });
+    if (agreed !== "rightButtonClick") return;
+
     // 권한을 거부해도 그리드는 그대로 써야 하므로 여기서 끝낸다.
-    if (!(await ensureLocationPermission())) return;
+    if (!(await ensureLocationPermission())) {
+      setToast("위치 권한이 없어 기록을 시작하지 못했어요");
+      return;
+    }
     setState((s) => ({
       ...s,
       run: { startedAt: Date.now(), points: [], spots: [] },
@@ -103,6 +126,12 @@ export default function Hunt() {
     setState(loadState());
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (toast == null) return;
+    const id = window.setTimeout(() => setToast(null), 2800);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -300,6 +329,14 @@ export default function Hunt() {
           onUpdate={(next) => handleChangeCell(editingIndex, next)}
           onClose={handleCloseEditor}
         />
+      )}
+
+      {toast != null && (
+        <div className="pointer-events-none absolute inset-x-0 top-4 z-50 flex justify-center px-6">
+          <p className="rounded-2xl bg-ink/85 px-4 py-2.5 text-center text-sm text-paper shadow-lg backdrop-blur">
+            {toast}
+          </p>
+        </div>
       )}
 
       {decorating && decorateHint && (
