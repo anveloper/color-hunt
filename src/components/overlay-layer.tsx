@@ -72,10 +72,19 @@ export default function OverlayLayer({
   liveRef.current = liveT;
 
   const baseT = selectedAsset?.transform ?? null;
+
+  // 선택이 바뀌면 이전 요소의 제스처 중간값을 버린다.
+  // 남겨두면 다음 요소가 그 값으로 그려지고 그대로 저장된다.
+  useEffect(() => {
+    setLiveT(null);
+  }, [selected]);
   const activeT = liveT ?? baseT;
 
   const commit = (t: Transform) => {
-    if (selected == null) return;
+    if (selected == null) {
+      setLiveT(null);
+      return;
+    }
     onChange(
       state.overlays.map((o) => (o.kind === selected ? { ...o, transform: t } : o)),
     );
@@ -84,37 +93,48 @@ export default function OverlayLayer({
 
   const current = () => liveRef.current ?? baseT;
 
+  /**
+   * drag와 pinch는 같은 tick에 함께 들어온다. 스프레드로 덮어쓰면 나중에
+   * 실행된 쪽이 앞의 기여를 통째로 버리고, 버려진 이동량이 last 시점에
+   * 한꺼번에 반영돼 요소가 튄다. 함수형 갱신으로 둘 다 누적시킨다.
+   */
+  const applyT = (patch: Partial<Transform>, last: boolean) => {
+    setLiveT((cur) => {
+      const base = cur ?? baseT;
+      if (base == null) return cur;
+      const next = { ...base, ...patch };
+      if (last) {
+        // commit이 setLiveT(null)을 부르므로 여기서는 값을 올리기만 한다.
+        queueMicrotask(() => commit(next));
+      }
+      return next;
+    });
+  };
+
   useGesture(
     {
       onPinch: ({ offset: [scale, angle], last }) => {
-        const cur = current();
-        if (cur == null) return;
-        const next = { ...cur, scale, rotation: angle };
-        last ? commit(next) : setLiveT(next);
+        if (baseT == null) return;
+        applyT({ scale, rotation: angle }, last);
       },
       onDrag: ({ offset: [px, py], last }) => {
-        const cur = current();
-        if (cur == null || frameSize.w === 0) return;
-        const next = {
-          ...cur,
-          offsetX: px / frameSize.w,
-          offsetY: py / frameSize.h,
-        };
-        last ? commit(next) : setLiveT(next);
+        if (baseT == null || frameSize.w === 0 || frameSize.h === 0) return;
+        applyT({ offsetX: px / frameSize.w, offsetY: py / frameSize.h }, last);
       },
       onWheel: ({ event, delta: [, dy], last }) => {
         event.preventDefault();
         const cur = current();
         if (cur == null) return;
         const factor = Math.exp(-dy * 0.0015);
-        const next = {
-          ...cur,
-          scale: Math.min(
-            SCALE_BOUNDS.max,
-            Math.max(SCALE_BOUNDS.min, cur.scale * factor),
-          ),
-        };
-        last ? commit(next) : setLiveT(next);
+        applyT(
+          {
+            scale: Math.min(
+              SCALE_BOUNDS.max,
+              Math.max(SCALE_BOUNDS.min, cur.scale * factor),
+            ),
+          },
+          last,
+        );
       },
     },
     {
@@ -144,7 +164,16 @@ export default function OverlayLayer({
   // 클릭 좌표가 그 요소 안인지로 판정한다.
   const selectedElRef = useRef<HTMLDivElement | null>(null);
 
+  // 다른(선택되지 않은) 요소가 자기 onClick으로 선택을 가져갔으면
+  // 이번 클릭은 거기서 끝난다. 안 그러면 한 번의 탭으로 선택이 옮겨가면서
+  // 직전 요소의 강조 스타일까지 바뀐다.
+  const claimedRef = useRef(false);
+
   const handleLayerClick = (e: React.MouseEvent) => {
+    if (claimedRef.current) {
+      claimedRef.current = false;
+      return;
+    }
     const el = selectedElRef.current;
     if (el != null && selected != null) {
       const r = el.getBoundingClientRect();
@@ -180,7 +209,10 @@ export default function OverlayLayer({
           <div
             key={asset.kind}
             ref={isSelected ? selectedElRef : undefined}
-            onClick={() => onSelect(asset.kind)}
+            onClick={() => {
+              claimedRef.current = true;
+              onSelect(asset.kind);
+            }}
             className="absolute top-1/2 left-1/2 p-4 text-paper select-none"
             style={{
               // 선택된 요소는 레이어가 제스처를 받으므로 스스로는 통과시킨다.
