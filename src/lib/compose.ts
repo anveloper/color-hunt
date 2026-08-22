@@ -3,7 +3,13 @@ import { LAYOUT_DIMS } from "./layout-utils";
 import { loadImage } from "./image";
 import { getTransform } from "./transform";
 import { canSaveToDevice, saveDataUrlToDevice } from "./toss";
-import { formatDuration, normalizeTrack, runDurationMs } from "./overlay";
+import {
+  COURSE_MARK,
+  EMPHASIS_STYLE,
+  formatDuration,
+  normalizeTrack,
+  runDurationMs,
+} from "./overlay";
 import { findHuntColor } from "./palette";
 
 const BASE_DIM = 1080;
@@ -203,19 +209,16 @@ function drawOverlays(
   }
 }
 
-// overlay-layer.tsx의 <svg width=180 height=180 viewBox="-0.06 -0.06 1.12 1.12">와 같은 좌표계
-const COURSE_PX = 180;
-const COURSE_VIEW_MIN = -0.06;
-const COURSE_VIEW_SPAN = 1.12;
-
 function drawCourse(
   ctx: CanvasRenderingContext2D,
   track: NonNullable<ReturnType<typeof normalizeTrack>>,
   hex: string,
   emphasis: OverlayEmphasis,
 ): void {
-  const unit = COURSE_PX / COURSE_VIEW_SPAN;
-  const toPx = (v: number) => (v - COURSE_VIEW_MIN) * unit - COURSE_PX / 2;
+  // 화면 SVG와 같은 좌표계로 환산한다(COURSE_MARK는 overlay.ts에서 공유).
+  const unit = COURSE_MARK.PX / COURSE_MARK.VIEW_SPAN;
+  const toPx = (v: number) =>
+    (v - COURSE_MARK.VIEW_MIN) * unit - COURSE_MARK.PX / 2;
 
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -233,23 +236,30 @@ function drawCourse(
   if (emphasis === "plate") {
     // 화면의 rounded plate와 같은 자리에 깐다.
     const pad = 10;
-    ctx.fillStyle = "rgba(43,42,38,0.6)";
-    roundRect(ctx, -COURSE_PX / 2 - pad, -COURSE_PX / 2 - pad, COURSE_PX + pad * 2, COURSE_PX + pad * 2, 16);
+    ctx.fillStyle = EMPHASIS_STYLE.PLATE_BG;
+    roundRect(
+      ctx,
+      -COURSE_MARK.PX / 2 - pad,
+      -COURSE_MARK.PX / 2 - pad,
+      COURSE_MARK.PX + pad * 2,
+      COURSE_MARK.PX + pad * 2,
+      16,
+    );
     ctx.fill();
   } else if (emphasis === "shadow") {
-    ctx.shadowColor = "rgba(0,0,0,0.45)";
+    ctx.shadowColor = EMPHASIS_STYLE.SHADOW_COLOR;
     ctx.shadowOffsetY = 1;
     ctx.shadowBlur = 2;
   } else {
     // outline: 같은 경로를 굵고 어둡게 한 번 더 깐다.
-    ctx.strokeStyle = "rgba(0,0,0,0.8)";
-    ctx.lineWidth = 0.055 * unit;
+    ctx.strokeStyle = EMPHASIS_STYLE.OUTLINE_COLOR;
+    ctx.lineWidth = COURSE_MARK.OUTLINE_STROKE * unit;
     path();
     ctx.stroke();
   }
 
   ctx.strokeStyle = hex;
-  ctx.lineWidth = 0.035 * unit;
+  ctx.lineWidth = COURSE_MARK.STROKE * unit;
 
   ctx.beginPath();
   track.points.forEach((p, i) => {
@@ -263,10 +273,10 @@ function drawCourse(
 
   for (const spot of track.spots) {
     ctx.beginPath();
-    ctx.arc(toPx(spot.x), toPx(spot.y), 0.045 * unit, 0, Math.PI * 2);
+    ctx.arc(toPx(spot.x), toPx(spot.y), COURSE_MARK.SPOT_R * unit, 0, Math.PI * 2);
     ctx.fillStyle = hex;
     ctx.fill();
-    ctx.lineWidth = 0.016 * unit;
+    ctx.lineWidth = COURSE_MARK.SPOT_STROKE * unit;
     ctx.strokeStyle = "#ffffff";
     ctx.stroke();
   }
@@ -283,12 +293,12 @@ function drawText(
   ctx.textBaseline = "middle";
   applyEmphasis(ctx, emphasis, ctx.measureText(text).width, size);
   if (emphasis === "outline") {
-    ctx.strokeStyle = "rgba(0,0,0,0.85)";
+    ctx.strokeStyle = EMPHASIS_STYLE.OUTLINE_COLOR;
     ctx.lineWidth = size * 0.14;
     ctx.lineJoin = "round";
     ctx.strokeText(text, 0, 0);
   }
-  ctx.fillStyle = "#f6f1e3";
+  ctx.fillStyle = EMPHASIS_STYLE.TEXT_COLOR;
   ctx.fillText(text, 0, 0);
   ctx.shadowColor = "transparent";
 }
@@ -317,12 +327,12 @@ function drawColorChip(
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   if (emphasis === "outline") {
-    ctx.strokeStyle = "rgba(0,0,0,0.85)";
+    ctx.strokeStyle = EMPHASIS_STYLE.OUTLINE_COLOR;
     ctx.lineWidth = size * 0.14;
     ctx.lineJoin = "round";
     ctx.strokeText(name, left + chip + gap, 0);
   }
-  ctx.fillStyle = "#f6f1e3";
+  ctx.fillStyle = EMPHASIS_STYLE.TEXT_COLOR;
   ctx.fillText(name, left + chip + gap, 0);
   ctx.shadowColor = "transparent";
 }
@@ -336,7 +346,7 @@ function applyEmphasis(
 ): void {
   ctx.shadowColor = "transparent";
   if (emphasis === "shadow") {
-    ctx.shadowColor = "rgba(0,0,0,0.45)";
+    ctx.shadowColor = EMPHASIS_STYLE.SHADOW_COLOR;
     ctx.shadowOffsetY = 1;
     ctx.shadowBlur = 2;
     return;
@@ -345,7 +355,7 @@ function applyEmphasis(
     const padX = 12;
     const padY = 6;
     const h = size + padY * 2;
-    ctx.fillStyle = "rgba(43,42,38,0.6)";
+    ctx.fillStyle = EMPHASIS_STYLE.PLATE_BG;
     roundRect(ctx, -contentW / 2 - padX, -h / 2, contentW + padX * 2, h, h / 2.6);
     ctx.fill();
   }

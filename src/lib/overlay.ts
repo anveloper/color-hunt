@@ -97,6 +97,36 @@ export function formatDuration(ms: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
+/**
+ * 경로 마크의 좌표계.
+ *
+ * 화면(overlay-layer.tsx의 SVG)과 저장물(compose.ts의 캔버스)이 반드시
+ * 같은 값을 써야 한다. 한쪽만 고치면 화면에서 배치한 것과 저장된 이미지가
+ * 어긋난다. SVG는 viewBox="{VIEW_MIN} {VIEW_MIN} {VIEW_SPAN} {VIEW_SPAN}",
+ * 캔버스는 unit = PX / VIEW_SPAN으로 환산해 쓴다.
+ */
+export const COURSE_MARK = {
+  /** 렌더 크기(px). scale 1일 때의 한 변 */
+  PX: 180,
+  /** 0~1 정규화 좌표 바깥으로 두는 여백 — 선 굵기가 잘리지 않게 */
+  VIEW_MIN: -0.06,
+  VIEW_SPAN: 1.12,
+  /** 정규화 좌표계 기준 굵기·반지름 */
+  STROKE: 0.035,
+  OUTLINE_STROKE: 0.055,
+  SPOT_R: 0.045,
+  SPOT_STROKE: 0.016,
+} as const;
+
+/** 사진 위에서 묻히지 않게 하는 처리. 화면과 저장물이 같은 값을 쓴다. */
+export const EMPHASIS_STYLE = {
+  SHADOW_COLOR: "rgba(0,0,0,0.45)",
+  OUTLINE_COLOR: "rgba(0,0,0,0.85)",
+  /** 판 배경 — --color-ink #2b2a26 의 60% */
+  PLATE_BG: "rgba(43,42,38,0.6)",
+  TEXT_COLOR: "#f6f1e3",
+} as const;
+
 export type NormalizedTrack = {
   /** 0~1 정규화 좌표. 종횡비를 유지한 채 중앙에 맞춘다. */
   points: { x: number; y: number }[];

@@ -8,7 +8,13 @@ import type {
   Transform,
 } from "../types";
 import { SCALE_BOUNDS } from "../lib/transform";
-import { formatDuration, normalizeTrack, runDurationMs } from "../lib/overlay";
+import {
+  COURSE_MARK,
+  EMPHASIS_STYLE,
+  formatDuration,
+  normalizeTrack,
+  runDurationMs,
+} from "../lib/overlay";
 import { findHuntColor } from "../lib/palette";
 
 type Props = {
@@ -232,17 +238,17 @@ export default function OverlayLayer({
 
 /** 사진 위에서 글자가 묻히지 않게 하는 세 방식. compose.ts와 규약을 맞춘다. */
 const OUTLINE_SHADOW = [
-  "1px 1px 0 rgba(0,0,0,0.85)",
-  "-1px 1px 0 rgba(0,0,0,0.85)",
-  "1px -1px 0 rgba(0,0,0,0.85)",
-  "-1px -1px 0 rgba(0,0,0,0.85)",
+  `1px 1px 0 ${EMPHASIS_STYLE.OUTLINE_COLOR}`,
+  `-1px 1px 0 ${EMPHASIS_STYLE.OUTLINE_COLOR}`,
+  `1px -1px 0 ${EMPHASIS_STYLE.OUTLINE_COLOR}`,
+  `-1px -1px 0 ${EMPHASIS_STYLE.OUTLINE_COLOR}`,
   "0 0 3px rgba(0,0,0,0.6)",
 ].join(", ");
 
 function textStyle(emphasis: OverlayEmphasis): React.CSSProperties {
   if (emphasis === "outline") return { textShadow: OUTLINE_SHADOW };
   if (emphasis === "plate") return {};
-  return { textShadow: "0 1px 2px rgba(0,0,0,0.45)" };
+  return { textShadow: `0 1px 2px ${EMPHASIS_STYLE.SHADOW_COLOR}` };
 }
 
 function CourseMark({
@@ -260,13 +266,13 @@ function CourseMark({
 
   return (
     <svg
-      width="180"
-      height="180"
-      viewBox="-0.06 -0.06 1.12 1.12"
+      width={COURSE_MARK.PX}
+      height={COURSE_MARK.PX}
+      viewBox={`${COURSE_MARK.VIEW_MIN} ${COURSE_MARK.VIEW_MIN} ${COURSE_MARK.VIEW_SPAN} ${COURSE_MARK.VIEW_SPAN}`}
       aria-hidden="true"
       style={
         emphasis === "shadow"
-          ? { filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.45))" }
+          ? { filter: `drop-shadow(0 1px 2px ${EMPHASIS_STYLE.SHADOW_COLOR})` }
           : undefined
       }
     >
@@ -274,8 +280,8 @@ function CourseMark({
         <path
           d={d}
           fill="none"
-          stroke="rgba(0,0,0,0.8)"
-          strokeWidth={0.055}
+          stroke={EMPHASIS_STYLE.OUTLINE_COLOR}
+          strokeWidth={COURSE_MARK.OUTLINE_STROKE}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -284,7 +290,7 @@ function CourseMark({
         d={d}
         fill="none"
         stroke={hex}
-        strokeWidth={0.035}
+        strokeWidth={COURSE_MARK.STROKE}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -293,10 +299,10 @@ function CourseMark({
           key={s.cellIndex}
           cx={s.x}
           cy={s.y}
-          r={0.045}
+          r={COURSE_MARK.SPOT_R}
           fill={hex}
           stroke="#ffffff"
-          strokeWidth={0.016}
+          strokeWidth={COURSE_MARK.SPOT_STROKE}
         />
       ))}
     </svg>
