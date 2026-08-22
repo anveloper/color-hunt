@@ -13,7 +13,7 @@ import { composeAndDownload } from "../lib/compose";
 import { resizeToDataUrl } from "../lib/image";
 import { ensureLocationPermission } from "../lib/location";
 import { pickPhotos, takePhoto } from "../lib/toss";
-import { useBottomSheet } from "@toss/tds-mobile";
+import { choose } from "../lib/dialog";
 import { runDurationMs } from "../lib/overlay";
 import { useRunTracker, useTicker } from "../hooks/use-run-tracker";
 import GridBoard from "../components/grid-board";
@@ -54,23 +54,21 @@ export default function Hunt() {
     );
   });
 
-  const { openTwoButtonSheet } = useBottomSheet();
-
   /**
    * 앱인토스에서 빈 셀을 눌렀을 때 사진 출처를 고르게 한다.
    * 웹은 <input accept="image/*">가 OS 차원에서 이미 앨범/카메라를 모두 준다.
    */
   const handleRequestPhoto = async (fromIndex: number, maxPickCount: number) => {
-    const action = await openTwoButtonSheet({
-      header: "사진을 어떻게 넣을까요?",
-      leftButton: "앨범에서 고르기",
-      rightButton: "사진 찍기",
+    const action = await choose({
+      title: "사진을 어떻게 넣을까요?",
+      leftLabel: "앨범에서 고르기",
+      rightLabel: "사진 찍기",
     });
     try {
-      if (action === "leftButtonClick") {
+      if (action === "left") {
         const urls = await pickPhotos(maxPickCount);
         if (urls.length > 0) handleUpload(urls, fromIndex);
-      } else if (action === "rightButtonClick") {
+      } else if (action === "right") {
         const url = await takePhoto();
         if (url) handleUpload([url], fromIndex);
       }
@@ -96,27 +94,22 @@ export default function Hunt() {
 
     // 위치 권한을 요청하기 전에 무엇에 쓰는지 먼저 알린다.
     // 시스템 권한 팝업만 띄우면 사용자는 "기록" 버튼이 왜 위치를 묻는지 알 수 없다.
-    let agreed: string;
+    let agreed: "left" | "right" | "cancel";
     try {
-      agreed = await openTwoButtonSheet({
-      header: "위치를 기록할까요?",
-      leftButton: "안 할래요",
-      rightButton: "좋아요",
-      children: (
-        <p className="px-1 pb-2 text-base leading-relaxed text-ink/70">
-          달린 경로와 사진을 찍은 지점을 남겨서, 사진 위에 함께 담을 수 있어요.
-          <br />
-          위치는 기기 안에만 저장되고 어디에도 전송되지 않아요.
-          <br />
-          허용하지 않아도 사진을 모으고 저장하는 건 그대로 할 수 있어요.
-        </p>
-      ),
+      agreed = await choose({
+        title: "위치를 기록할까요?",
+        description:
+          "달린 경로와 사진을 찍은 지점을 남겨서, 사진 위에 함께 담을 수 있어요. " +
+          "위치는 기기 안에만 저장되고 어디에도 전송되지 않아요. " +
+          "허용하지 않아도 사진을 모으고 저장하는 건 그대로 할 수 있어요.",
+        leftLabel: "안 할래요",
+        rightLabel: "좋아요",
       });
     } catch (err) {
       console.error("[colorhunt] consent sheet failed:", err);
       return;
     }
-    if (agreed !== "rightButtonClick") return;
+    if (agreed !== "right") return;
 
     // 권한을 거부해도 그리드는 그대로 써야 하므로 여기서 끝낸다.
     let allowed = false;
@@ -364,7 +357,11 @@ export default function Hunt() {
       )}
 
       {toast != null && (
-        <div className="pointer-events-none absolute inset-x-0 top-4 z-50 flex justify-center px-6">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-4 z-50 flex justify-center px-6"
+          role="status"
+          aria-live="polite"
+        >
           <p className="rounded-2xl bg-ink/85 px-4 py-2.5 text-center text-sm text-paper shadow-lg backdrop-blur">
             {toast}
           </p>

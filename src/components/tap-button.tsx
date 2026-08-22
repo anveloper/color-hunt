@@ -54,7 +54,8 @@ export default function TapButton({
       onClick={activate}
       onKeyDown={handleKeyDown}
       // disabled: 변형은 :disabled 의사클래스라 div에서는 안 먹으므로 직접 준다.
-      className={`cursor-pointer select-none ${disabled ? "opacity-50" : ""} ${className}`}
+      // 키보드로 이동할 때 현재 위치가 보여야 한다.
+      className={`cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${disabled ? "opacity-50" : ""} ${className}`}
       style={style}
     >
       {children}

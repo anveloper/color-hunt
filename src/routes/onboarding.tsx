@@ -12,8 +12,8 @@ import {
   findHuntColor,
   randomHuntColor,
 } from "../lib/palette";
-import { ConfirmDialog } from "@toss/tds-mobile";
-import { isInToss } from "../lib/toss";
+import { isInToss } from "../lib/env";
+import { confirm } from "../lib/dialog";
 import TapButton from "../components/tap-button";
 
 const TITLE_CHARS: Array<{ ch: string; color: string; rotate: number }> = [
@@ -26,7 +26,6 @@ const TITLE_CHARS: Array<{ ch: string; color: string; rotate: number }> = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const [resumeAvailable, setResumeAvailable] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [huntColor, setHuntColor] = useState(() => loadState().huntColor);
 
   useLayoutEffect(() => {
@@ -46,14 +45,20 @@ export default function Onboarding() {
   };
 
   // 모아둔 사진이 전부 사라지는 동작이라 확인을 받고 진행한다.
-  const handleReset = () => {
+  const handleReset = async () => {
+    const ok = await confirm({
+      title: "다 지울까요?",
+      description: "모아둔 사진이 모두 사라져요. 이 동작은 되돌릴 수 없어요.",
+      cancelLabel: "그대로 둘래요",
+      confirmLabel: "지우기",
+    });
+    if (!ok) return;
     clearState();
     // 방금 고른 오늘의 색은 유지한다. clearState는 키를 통째로 지우므로
     // 그대로 두면 색이 기본값(빨강)으로 돌아가는데, 화면의 온보딩 UI는
     // 고른 색을 그대로 보여주고 있어 어긋난다.
     saveState({ ...DEFAULT_STATE, huntColor });
     setResumeAvailable(false);
-    setConfirmOpen(false);
     navigate("/hunt");
   };
 
@@ -133,7 +138,7 @@ export default function Onboarding() {
 
         {resumeAvailable && (
           <TapButton
-            onClick={() => setConfirmOpen(true)}
+            onClick={handleReset}
             className="rounded-full px-4 py-2 text-base font-bold text-ink/62 transition-colors hover:text-ink active:scale-95"
           >
             지우고 다시하기
@@ -141,22 +146,6 @@ export default function Onboarding() {
         )}
       </div>
 
-      <ConfirmDialog
-        open={confirmOpen}
-        title="다 지울까요?"
-        description="모아둔 사진이 모두 사라져요. 이 동작은 되돌릴 수 없어요."
-        onClose={() => setConfirmOpen(false)}
-        cancelButton={
-          <ConfirmDialog.CancelButton onClick={() => setConfirmOpen(false)}>
-            그대로 둘래요
-          </ConfirmDialog.CancelButton>
-        }
-        confirmButton={
-          <ConfirmDialog.ConfirmButton onClick={handleReset}>
-            지우기
-          </ConfirmDialog.ConfirmButton>
-        }
-      />
 
       <p className="absolute bottom-14 text-sm text-ink/60">
         색을 모으고, 그리드에 담다
@@ -174,7 +163,7 @@ export default function Onboarding() {
           href="https://github.com/anveloper/color-hunt"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 underline-offset-2 hover:underline focus-visible:underline"
+          className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-ink/55 underline-offset-2 hover:underline focus-visible:underline"
           aria-label="GitHub 레포지토리로 이동"
         >
           <span className="font-bold">anveloper</span>

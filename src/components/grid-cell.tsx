@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CellState } from "../types";
 import { getTransform } from "../lib/transform";
-import { isInToss } from "../lib/toss";
+import { isInToss } from "../lib/env";
 
 type Props = {
   cell: CellState;

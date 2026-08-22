@@ -9,17 +9,11 @@ import {
 
 // SDK는 import만으로는 부수효과가 없고, 브릿지는 첫 호출 시점에 초기화된다.
 // 따라서 웹 빌드에서도 정적 import 자체는 안전하다.
+// isInToss는 env.ts에 따로 두어, 판정 하나 때문에 SDK가 끌려오지 않게 한다.
 
-/**
- * 앱인토스 웹뷰 안에서 실행 중인지 판정한다.
- * SDK 내부(assertWebViewEnvironment)와 동일한 기준을 쓴다.
- */
-export function isInToss(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    (window as { ReactNativeWebView?: unknown }).ReactNativeWebView != null
-  );
-}
+import { isInToss } from "./env";
+
+export { isInToss };
 
 /** 권한이 허용 상태가 되도록 시도한다. 거부되면 false. */
 async function ensurePermission(fn: {
