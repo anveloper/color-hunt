@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:ait": "tsc -b && vite build && ait build",
+    "build:ait": "tsc -b && vite build --mode ait && ait build",
     "preview": "vite preview",
     "lint": "tsc -b --noEmit",
     "fonts": "node scripts/build-fonts.mjs",

@@ -13,6 +13,10 @@ function isHeic(file: File): boolean {
 // 최근 iPhone HEIC(iOS 18 계열) 대응이 heic2any보다 안정적이다.
 async function ensureDecodableBlob(file: File): Promise<Blob> {
   if (!isHeic(file)) return file;
+  // 미니앱 빌드에서는 이 분기 전체가 죽은 코드가 되어 heic-to가 빠진다.
+  if (!__HEIC_ENABLED__) {
+    throw new Error("이 환경에서는 HEIC 파일을 변환할 수 없습니다.");
+  }
   try {
     const { heicTo } = await import("heic-to");
     const out = await heicTo({
