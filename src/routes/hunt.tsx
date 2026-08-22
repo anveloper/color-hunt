@@ -216,6 +216,9 @@ export default function Hunt() {
 
   const handleSave = async (choice: AspectChoice) => {
     if (busy) return;
+    // 오버레이는 화면 프레임 픽셀 기준으로 배치돼 있어, 어떤 비율로 저장하든
+    // 화면 폭을 알아야 결과 해상도로 올바르게 환산된다.
+    const screenWidth = frameRef.current?.getBoundingClientRect().width;
     let aspect: { w: number; h: number };
     let snapshot:
       | {
@@ -257,7 +260,7 @@ export default function Hunt() {
     }
     setBusy(true);
     try {
-      await composeAndDownload(state, aspect, snapshot);
+      await composeAndDownload(state, aspect, snapshot, screenWidth);
     } catch (err) {
       console.error("[colorhunt] download failed:", err);
     } finally {

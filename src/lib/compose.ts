@@ -31,6 +31,8 @@ export async function composeAndDownload(
   state: AppState,
   frameAspect: { w: number; h: number },
   snapshot?: ComposeSnapshot,
+  /** 화면 프레임의 실제 CSS 픽셀 폭. 오버레이 배율 환산에 쓴다. */
+  screenWidth?: number,
 ): Promise<void> {
   const { cols, rows } = LAYOUT_DIMS[state.layout];
 
@@ -132,12 +134,16 @@ export async function composeAndDownload(
     }
   }
 
+  // 오버레이는 화면 프레임 픽셀 기준으로 배치·확대돼 있으므로 결과 해상도로
+  // 환산해야 한다. frameAspect는 "현재 화면"일 때만 실제 CSS 픽셀이고
+  // 고정 비율(1:1, 9:16 등)일 때는 비율 숫자라, 그대로 나누면 배율이
+  // 수백 배로 튄다. 화면 프레임 폭을 알 수 있을 때만 그것을 쓰고,
+  // 아니면 스냅샷 프레임 폭으로 되돌린다.
+  const basisWidth = screenWidth ?? snapshot?.frame.w ?? frameAspect.w;
   drawOverlays(ctx, state, {
     width: targetWidth,
     height: targetHeight,
-    // 화면 프레임 기준 크기를 결과 해상도로 환산한다.
-    // 이 배율을 안 맞추면 화면에서 본 것보다 오버레이가 작게 찍힌다.
-    scale: targetWidth / frameAspect.w,
+    scale: targetWidth / basisWidth,
   });
 
   const fileName = `colorhunt-${Date.now()}.png`;
@@ -182,10 +188,14 @@ function drawOverlays(
   const track = normalizeTrack(state.run);
   const duration = runDurationMs(state.run, Date.now());
 
+  // 오버레이는 꾸미기 모드에서만 화면에 보이고, 그 모드는 런 기록이 있어야
+  // 들어갈 수 있다. 런이 없으면 사용자가 한 번도 못 본 요소가 결과물에만
+  // 찍히고 끌 방법도 없으므로 아예 그리지 않는다.
+  if (state.run == null) return;
+
   for (const asset of state.overlays) {
     if (!asset.visible) continue;
     if (asset.kind === "course" && track == null) continue;
-    if (asset.kind === "runtime" && state.run == null) continue;
 
     const t = asset.transform;
     ctx.save();
