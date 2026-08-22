@@ -9,13 +9,16 @@
 
 ### 현재 UI 톤
 - 바탕은 종이 질감이 느껴지는 오프 화이트 계열이다.
-- 타이포는 `Gaegu`, `Caveat` 기반 손글씨 톤이다.
+- 타이포는 `Gaegu` 손글씨 톤이다. (`Caveat`는 초기 검토만 하고 쓰지 않는다.)
+- Gaegu는 CDN이 아니라 **앱에서 실제 쓰는 글자만 담은 서브셋을 셀프 호스팅**한다(`public/fonts/gaegu-{400,700}.woff2`, 약 520자·합계 100KB). 새 한글 문구를 넣으면 `pnpm run fonts`로 서브셋을 다시 만들어야 하므로, **문구를 자산에 박아 넣는 결정은 폰트 파이프라인과 얽힌다.**
 - 컬러는 색연필처럼 약간 탁하고 따뜻한 원색을 쓴다.
 - SVG turbulence/displacement 필터로 손으로 그린 듯한 흔들림을 만든다.
 - 온보딩은 장난스럽고 아날로그적이지만, 실제 편집 화면은 비교적 미니멀하다.
+- 앱인토스 미니앱 대응으로 TDS(토스 디자인 시스템)를 도입하면서 **손그림 톤은 온보딩에, TDS 톤은 편집 화면(바텀시트·다이얼로그)에** 남는 이원 구조가 됐다. 브랜드 일관성 관점에서 판단이 필요한 지점이다.
 
 ### 코드에서 확인한 핵심 비주얼 토큰
-- 배경 종이색: `#f6f1e3`
+- 배경 종이색: `#f6f1e3` (앱 프레임 안)
+- 프레임 바깥(PC 뷰) 배경: `#1f1d1b` — **어두운 배경 위에서도 로고/OG가 읽히는지 확인해야 한다**
 - 잉크색: `#2b2a26`
 - 포인트 팔레트:
   - red `#d9534f`
@@ -87,22 +90,28 @@
 
 ## 4. 자산 규격
 
-### 로고 산출물
-- `logo-primary.png`: 밝은 배경용
-- `logo-primary-transparent.png`: 투명 배경
-- `logo-mark-square.png`: 심볼형 정사각
-- `logo-lockup-kor.png`: `ㅋㄹㅎㅌ` + `컬러헌트` 조합형
-- 가능하면 후속으로 SVG 재작업 예정
+### 채택된 산출물 (실제 파일)
 
-### 파비콘 산출물
-- 정사각 원본 1024x1024로 먼저 생성
-- 후처리로 `32x32`, `16x16`, `180x180` 파생
-- 라인 두께가 얇지 않도록 원본에서 단순하게 유지
+| 파일 | 용도 | 참조 위치 |
+|---|---|---|
+| `public/logo.png` | 로고 | `README.md` |
+| `public/og.png` | OG / Twitter 카드 (1200x630) | `index.html` og:image, twitter:image |
+| `public/favicon.png` | 파비콘 원본 | — |
+| `public/favicon-32.png` | 파비콘 32x32 | `index.html` |
+| `public/favicon-192.png` | 파비콘 192x192 | `index.html` |
+| `public/apple-touch-icon.png` | iOS 홈 화면 | `index.html` |
 
-### OG 이미지 산출물
-- `1200x630`
-- 텍스트와 핵심 피사체는 중앙 80% 영역 안에 유지
-- 너무 많은 디테일보다 작은 썸네일에서도 읽히는 실루엣 우선
+미니앱 아이콘은 레포가 아니라 앱인토스 콘솔에 업로드되어 있다(`static.toss.im` 호스팅).
+
+### 아직 만들지 않은 변형
+- 투명 배경 로고
+- 심볼형 정사각 로고
+- `ㅋㄹㅎㅌ` + `컬러헌트` 락업형
+- SVG 재작업
+
+### 생성 시 지킬 것
+- 파비콘은 정사각 원본 1024x1024로 먼저 만들고 축소 파생한다. 라인이 얇으면 작은 크기에서 뭉개진다.
+- OG는 텍스트와 핵심 피사체를 중앙 80% 안에 두고, 디테일보다 작은 썸네일에서 읽히는 실루엣을 우선한다.
 
 ## 5. Image 2.0 생성 전략
 
@@ -192,6 +201,8 @@ Constraints: must read clearly as an app for color collage making, keep the shor
 Avoid: dark background, futuristic gradients, stock-photo people, excessive tiny text
 ```
 
+> 실제로 채택한 로고 프롬프트는 `docs/prompts/logo-krlht-single.md`에 있다.
+
 ## 7. 실전 생성 메모
 
 ### 추천 워크플로
@@ -205,18 +216,33 @@ Avoid: dark background, futuristic gradients, stock-photo people, excessive tiny
 - favicon은 생성 이미지에서 바로 쓰기보다 리드 심볼을 선택한 뒤 벡터/정리 단계를 거치는 편이 안정적이다.
 - OG 이미지는 비트맵 그대로 써도 무방하지만, 로고만큼은 후속 보정 가능성을 열어두는 편이 좋다.
 
-## 8. 현재 리포지토리 기준 준비 상태
+## 8. 적용 현황
 
-### 확인된 상태
-- 앱의 핵심 UI 방향은 이미 존재한다.
-- `index.html`에는 `/favicon.svg` 링크가 있으나 현재 리포지토리에는 실제 파일이 없다.
-- OG/Twitter 메타 태그는 아직 없다.
-- 따라서 생성 후 바로 연결할 대상은 다음 순서가 적합하다:
-  1. `public/favicon.svg` 또는 PNG 기반 favicon 세트 추가
-  2. `public/og-cover.png` 추가
-  3. `index.html`에 OG/Twitter 메타 태그 연결
+### 완료
+- **파비콘 세트**: `favicon-32.png`, `favicon-192.png`, `apple-touch-icon.png` 생성 및 `index.html` 연결 완료. (`favicon.svg`는 더 이상 참조하지 않는다.)
+- **OG 이미지**: `public/og.png` 생성, `index.html`에 OG 8종 + Twitter 4종 + canonical + JSON-LD(`WebApplication`) 연결 완료.
+- **로고**: `public/logo.png` 생성, README에 노출.
+- **태그라인**: `색을 모으고, 그리드에 담다` — 온보딩 화면과 OG에 실제 적용됨.
 
-## 9. 다음 단계
+### 브랜드명 사용처
 
-- 이 문서의 프롬프트로 `ㅋㄹㅎㅌ 로고 3안`, `파비콘 2안`, `OG 1안`을 생성한다.
-- 선택안이 나오면 앱에 연결할 실제 파일 세트와 메타 태그를 정리한다.
+| 이름 | 쓰이는 곳 |
+|---|---|
+| `ㅋㄹㅎㅌ` | 로고 워드마크 |
+| `컬러헌트` | 웹 서비스명, `og:site_name`, README |
+| `컬러헌트런` / `color-hunt-run` | 앱인토스 미니앱명, 딥링크 `intoss://color-hunt-run`, SEO 보조 키워드 |
+
+## 9. 남은 과제
+
+### 미니앱 자산
+앱인토스 콘솔은 웹 파비콘/OG와 **별개로** 미니앱 아이콘과 스토어 스크린샷을 요구한다.
+
+- 미니앱 아이콘: 콘솔에 업로드 완료. 다크모드용 아이콘은 미등록.
+- 스토어 스크린샷: 세로 636x1048 / 가로 1504x741. 해상도가 1px이라도 다르면 업로드가 거부된다.
+- 가로 썸네일: 1932x828.
+- **`apps-in-toss.config.ts`의 `brand.primaryColor`가 아직 스캐폴드 기본값 `#FAF8F3`이다.** 앱 종이색 `#f6f1e3`과 미묘하게 다르므로 브랜드 결정이 필요하다.
+
+### 로고
+- SVG 재작업
+- 투명 배경 / 심볼형 / 락업형 변형
+- 어두운 배경(`#1f1d1b`) 대응 확인
