@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { TDSMobileAITProvider } from "@toss/tds-mobile-ait";
 import "./styles/index.css";
 import AppShell from "./components/app-shell";
+import ErrorBoundary from "./components/error-boundary";
 import Onboarding from "./routes/onboarding";
 import Hunt from "./routes/hunt";
 
@@ -20,7 +21,9 @@ const router = createBrowserRouter([
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <TDSMobileAITProvider>
-      <RouterProvider router={router} />
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+      </ErrorBoundary>
     </TDSMobileAITProvider>
   </StrictMode>,
 );

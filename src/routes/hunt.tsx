@@ -96,7 +96,9 @@ export default function Hunt() {
 
     // 위치 권한을 요청하기 전에 무엇에 쓰는지 먼저 알린다.
     // 시스템 권한 팝업만 띄우면 사용자는 "기록" 버튼이 왜 위치를 묻는지 알 수 없다.
-    const agreed = await openTwoButtonSheet({
+    let agreed: string;
+    try {
+      agreed = await openTwoButtonSheet({
       header: "위치를 기록할까요?",
       leftButton: "안 할래요",
       rightButton: "좋아요",
@@ -109,11 +111,21 @@ export default function Hunt() {
           허용하지 않아도 사진을 모으고 저장하는 건 그대로 할 수 있어요.
         </p>
       ),
-    });
+      });
+    } catch (err) {
+      console.error("[colorhunt] consent sheet failed:", err);
+      return;
+    }
     if (agreed !== "rightButtonClick") return;
 
     // 권한을 거부해도 그리드는 그대로 써야 하므로 여기서 끝낸다.
-    if (!(await ensureLocationPermission())) {
+    let allowed = false;
+    try {
+      allowed = await ensureLocationPermission();
+    } catch (err) {
+      console.error("[colorhunt] location permission failed:", err);
+    }
+    if (!allowed) {
       setToast("위치 권한이 없어 기록을 시작하지 못했어요");
       return;
     }

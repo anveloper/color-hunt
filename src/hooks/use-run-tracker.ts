@@ -17,13 +17,20 @@ export function useRunTracker(
 
   useEffect(() => {
     if (!running) return;
-    return subscribeTrack({
-      onPoint: (p) => onPointRef.current(p),
-      onError: (err) => {
-        // 권한 거부·신호 없음. 기록만 멈추고 나머지 기능은 그대로 둔다.
-        console.error("[colorhunt] location track failed:", err);
-      },
-    });
+    try {
+      return subscribeTrack({
+        onPoint: (p) => onPointRef.current(p),
+        onError: (err) => {
+          // 권한 거부·신호 없음. 기록만 멈추고 나머지 기능은 그대로 둔다.
+          console.error("[colorhunt] location track failed:", err);
+        },
+      });
+    } catch (err) {
+      // SDK가 동기로 던지는 경우(구버전 토스앱, 브릿지 미초기화 등).
+      // 여기서 안 막으면 렌더 커밋 중 예외가 나 화면 전체가 백지가 된다.
+      console.error("[colorhunt] location subscribe failed:", err);
+      return;
+    }
   }, [running]);
 }
 
