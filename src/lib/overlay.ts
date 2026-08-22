@@ -158,7 +158,13 @@ export function normalizeTrack(run: RunRecord | undefined): NormalizedTrack | nu
   const maxY = Math.max(...ys);
 
   const span = Math.max(maxX - minX, maxY - minY);
-  if (span === 0) return null;
+
+  // 제자리에 서 있어도 GPS는 매번 조금씩 다른 좌표를 준다. span을 그대로
+  // 쓰면 반경 몇 m의 측정 노이즈가 0~1 박스를 꽉 채워, 실제로 움직이지
+  // 않은 사용자가 그럴듯한 경로 그림을 받게 된다. 위도 1도 ≈ 111km이므로
+  // 아래 값은 약 30m에 해당한다. 그보다 좁게 움직였으면 경로로 보지 않는다.
+  const MIN_SPAN_DEG = 30 / 111_000;
+  if (span < MIN_SPAN_DEG) return null;
 
   // 종횡비 유지: 더 긴 축을 기준으로 나누고 짧은 축은 가운데로 민다.
   const padX = (span - (maxX - minX)) / 2;

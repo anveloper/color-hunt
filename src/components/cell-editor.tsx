@@ -103,6 +103,12 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
   // 계속 다시 쓰인다(9컷이면 매번 수 MB 직렬화).
   const commit = (next: Transform) => onUpdate({ ...cell, transform: next });
 
+  // 삭제 등으로 이미지가 사라지면 편집 모드를 닫는다.
+  // 렌더 중에 부모 상태를 바꾸면 React가 경고하고 렌더가 한 번 더 돈다.
+  useEffect(() => {
+    if (!cell.imageDataUrl) onClose();
+  }, [cell.imageDataUrl, onClose]);
+
   // 제스처가 last 없이 끊기거나(포인터 취소) 편집을 바로 닫아도
   // 마지막 변환이 유실되지 않게 언마운트 시 한 번 더 올린다.
   const cellRefForUnmount = useRef({ cell, onUpdate });
@@ -201,10 +207,6 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
     commit(IDENTITY_TRANSFORM);
   };
 
-  if (!cell.imageDataUrl) {
-    onClose();
-    return null;
-  }
 
   return (
     <>

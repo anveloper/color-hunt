@@ -161,9 +161,12 @@ export default function Hunt() {
 
   // sources: 웹은 File, 앱인토스는 앨범에서 받은 data URL 문자열
   const handleUpload = async (sources: (File | string)[], fromIndex: number) => {
+    // 이미 처리 중인 칸은 렌더 시점 state에서는 아직 비어 있다.
+    // 그것까지 빼야 동시에 두 번 고른 사진이 같은 칸을 덮어쓰지 않는다.
+    const claimed = loadingIndices;
     const targetIndices: number[] = [];
     for (let idx = fromIndex; idx < state.cells.length && targetIndices.length < sources.length; idx++) {
-      if (!state.cells[idx].imageDataUrl) targetIndices.push(idx);
+      if (!state.cells[idx].imageDataUrl && !claimed.has(idx)) targetIndices.push(idx);
     }
     if (targetIndices.length === 0) return;
 

@@ -73,6 +73,9 @@ export default function GridCell({
   }, [t, cellSize]);
 
   const handleClick = () => {
+    // 처리 중인 셀을 또 누르면 두 번째 선택이 같은 칸을 대상으로 잡아
+    // 첫 배치의 사진과 지점이 덮어써진다.
+    if (loading) return;
     if (filled) {
       onActivate();
       return;
