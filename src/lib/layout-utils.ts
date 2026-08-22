@@ -15,11 +15,6 @@ export function cellCount(layout: Layout): number {
   return cols * rows;
 }
 
-export function nextLayout(cur: Layout): Layout {
-  const i = LAYOUTS.indexOf(cur);
-  return LAYOUTS[(i + 1) % LAYOUTS.length];
-}
-
 let idSeed = 0;
 function makeId(): string {
   idSeed += 1;
