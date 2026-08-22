@@ -98,38 +98,63 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
     return () => window.clearTimeout(tid);
   }, [hintVisible]);
 
+  // 제스처 중에는 로컬 t로만 렌더하고, 끝날 때 한 번만 올린다.
+  // 매 프레임 올리면 base64 사진이 통째로 든 state가 LocalStorage에
+  // 계속 다시 쓰인다(9컷이면 매번 수 MB 직렬화).
+  const commit = (next: Transform) => onUpdate({ ...cell, transform: next });
+
+  // 제스처가 last 없이 끊기거나(포인터 취소) 편집을 바로 닫아도
+  // 마지막 변환이 유실되지 않게 언마운트 시 한 번 더 올린다.
+  const cellRefForUnmount = useRef({ cell, onUpdate });
+  cellRefForUnmount.current = { cell, onUpdate };
   useEffect(() => {
-    onUpdate({ ...cell, transform: t });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t]);
+    return () => {
+      const { cell: c, onUpdate: up } = cellRefForUnmount.current;
+      const last = tRef.current;
+      const saved = getTransform(c.transform);
+      const same =
+        saved.scale === last.scale &&
+        saved.rotation === last.rotation &&
+        saved.offsetX === last.offsetX &&
+        saved.offsetY === last.offsetY;
+      // 삭제된 셀에는 되살리지 않는다.
+      if (!same && c.imageDataUrl != null) up({ ...c, transform: last });
+    };
+  }, []);
 
   useGesture(
     {
-      onPinch: ({ offset: [scale, angle] }) => {
+      onPinch: ({ offset: [scale, angle], last }) => {
         setHintVisible(false);
-        setT((cur) => ({ ...cur, scale, rotation: angle }));
+        const next = { ...tRef.current, scale, rotation: angle };
+        setT(next);
+        if (last) commit(next);
       },
-      onDrag: ({ offset: [px, py] }) => {
+      onDrag: ({ offset: [px, py], last }) => {
         setHintVisible(false);
         const r = cellRef.current?.getBoundingClientRect();
         if (!r) return;
-        setT((cur) => ({
-          ...cur,
+        const next = {
+          ...tRef.current,
           offsetX: px / r.width,
           offsetY: py / r.height,
-        }));
+        };
+        setT(next);
+        if (last) commit(next);
       },
-      onWheel: ({ event, delta: [, dy] }) => {
+      onWheel: ({ event, delta: [, dy], last }) => {
         event.preventDefault();
         setHintVisible(false);
-        setT((cur) => {
-          const factor = Math.exp(-dy * 0.0015);
-          const next = Math.min(
+        const factor = Math.exp(-dy * 0.0015);
+        const next = {
+          ...tRef.current,
+          scale: Math.min(
             SCALE_BOUNDS.max,
-            Math.max(SCALE_BOUNDS.min, cur.scale * factor),
-          );
-          return { ...cur, scale: next };
-        });
+            Math.max(SCALE_BOUNDS.min, tRef.current.scale * factor),
+          ),
+        };
+        setT(next);
+        if (last) commit(next);
       },
     },
     {
@@ -173,6 +198,7 @@ export default function CellEditor({ cell, index, layout, onUpdate, onClose }: P
   const handleResetTransform = () => {
     setHintVisible(false);
     setT(IDENTITY_TRANSFORM);
+    commit(IDENTITY_TRANSFORM);
   };
 
   if (!cell.imageDataUrl) {
