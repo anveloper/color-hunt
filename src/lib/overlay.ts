@@ -81,6 +81,15 @@ export const DEFAULT_OVERLAYS: OverlayAsset[] = OVERLAY_KINDS.map((kind) => ({
   transform: defaultOverlayTransform(kind),
 }));
 
+/**
+ * 런 최대 길이. 이를 넘으면 종료된 것으로 본다.
+ *
+ * 앱을 닫아도 endedAt이 찍히지 않아, 재진입하면 계속 "기록 중"이고
+ * 좌표가 계속 쌓인다. 점당 57자 × 3초 간격이면 시간당 68KB라
+ * LocalStorage 예산을 조용히 잠식한다.
+ */
+export const MAX_RUN_MS = 6 * 60 * 60 * 1000;
+
 /** 진행 중이면 지금까지, 끝났으면 총 소요 시간(ms). */
 export function runDurationMs(run: RunRecord | undefined, now: number): number {
   if (!run) return 0;

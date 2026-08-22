@@ -1,7 +1,7 @@
 import type { AppState } from "../types";
 import { LAYOUT_DIMS, makeEmptyCells } from "./layout-utils";
 import { DEFAULT_HUNT_COLOR } from "./palette";
-import { DEFAULT_OVERLAYS, migrateOverlays } from "./overlay";
+import { DEFAULT_OVERLAYS, MAX_RUN_MS, migrateOverlays } from "./overlay";
 
 const KEY = "colorhunt:state:v1";
 
@@ -25,7 +25,14 @@ export function loadState(): AppState {
       gridLineMode: parsed.gridLineMode ?? DEFAULT_STATE.gridLineMode,
       cells: parsed.cells ?? DEFAULT_STATE.cells,
       overflowCells: parsed.overflowCells ?? [],
-      run: parsed.run,
+      // 앱을 닫으면 endedAt이 찍히지 않는다. 상한을 넘긴 런은 끝난 것으로
+      // 보고 닫아, 재진입 시 좌표가 계속 쌓이지 않게 한다.
+      run:
+        parsed.run != null &&
+        parsed.run.endedAt == null &&
+        Date.now() - parsed.run.startedAt > MAX_RUN_MS
+          ? { ...parsed.run, endedAt: parsed.run.startedAt + MAX_RUN_MS }
+          : parsed.run,
       overlays: migrateOverlays(parsed.overlays ?? DEFAULT_OVERLAYS),
     };
   } catch {
@@ -100,4 +107,14 @@ export function markDecorateHintSeen(): void {
   } catch {
     // 저장 실패해도 무시 — 다음 진입 때 다시 보여주는 게 최악의 경우
   }
+}
+
+/**
+ * 저장된 상태의 일부만 바꾼다.
+ *
+ * 온보딩에서 색 칩을 누를 때마다 전체 상태(사진 base64 포함, 수 MB)를
+ * parse -> 새 객체 -> stringify 하고 있었다. 색 7개를 훑으면 7회 반복된다.
+ */
+export function patchState(patch: Partial<AppState>): void {
+  saveState({ ...loadState(), ...patch });
 }

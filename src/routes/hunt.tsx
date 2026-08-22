@@ -151,10 +151,26 @@ export default function Hunt() {
     return () => setSaveErrorHandler(null);
   }, []);
 
+  // 상태에는 사진 base64가 통째로 들어 있어 직렬화가 비싸다. 러닝 중에는
+  // 3초마다 좌표가 추가되므로 그때마다 수 MB를 다시 쓰게 된다. 짧게 묶어
+  // 마지막 것만 저장한다. 언마운트 시에는 즉시 저장해 유실을 막는다.
+  const pendingState = useRef(state);
+  pendingState.current = state;
   useEffect(() => {
     if (!hydrated) return;
-    saveState(state);
+    const id = window.setTimeout(() => saveState(pendingState.current), 400);
+    return () => window.clearTimeout(id);
   }, [state, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const flush = () => saveState(pendingState.current);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [hydrated]);
 
   const handleChangeCell = (i: number, next: CellState) => {
     setState((s) => {

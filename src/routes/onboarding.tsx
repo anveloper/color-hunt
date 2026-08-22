@@ -5,6 +5,7 @@ import {
   clearState,
   hasSavedWork,
   loadState,
+  patchState,
   saveState,
 } from "../lib/storage";
 import {
@@ -37,7 +38,7 @@ export default function Onboarding() {
   // 오늘의 색은 그리드로 넘어가기 전에 정해지므로 여기서 바로 영속화한다.
   const applyHuntColor = (id: string) => {
     setHuntColor(id);
-    saveState({ ...loadState(), huntColor: id });
+    patchState({ huntColor: id });
   };
 
   const handleStart = () => {
