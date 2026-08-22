@@ -154,11 +154,13 @@ export async function composeAndDownload(
     return;
   }
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
+        // null이면 인코딩 실패다. 조용히 resolve하면 호출 측이 성공으로
+        // 오해해 사용자에게 아무 표시 없이 끝난다.
         if (!blob) {
-          resolve();
+          reject(new Error("PNG 인코딩에 실패했습니다"));
           return;
         }
         const url = URL.createObjectURL(blob);

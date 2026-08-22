@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  DEFAULT_STATE,
   clearState,
   hasSavedWork,
   loadState,
@@ -47,6 +48,10 @@ export default function Onboarding() {
   // 모아둔 사진이 전부 사라지는 동작이라 확인을 받고 진행한다.
   const handleReset = () => {
     clearState();
+    // 방금 고른 오늘의 색은 유지한다. clearState는 키를 통째로 지우므로
+    // 그대로 두면 색이 기본값(빨강)으로 돌아가는데, 화면의 온보딩 UI는
+    // 고른 색을 그대로 보여주고 있어 어긋난다.
+    saveState({ ...DEFAULT_STATE, huntColor });
     setResumeAvailable(false);
     setConfirmOpen(false);
     navigate("/hunt");

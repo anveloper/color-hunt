@@ -33,11 +33,24 @@ export function loadState(): AppState {
   }
 }
 
-export function saveState(state: AppState): void {
+/** 저장 실패 시 호출된다. 사용자에게 알려야 사진이 조용히 사라지지 않는다. */
+let onSaveError: ((err: unknown) => void) | null = null;
+
+export function setSaveErrorHandler(fn: ((err: unknown) => void) | null): void {
+  onSaveError = fn;
+}
+
+export function saveState(state: AppState): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
+    return true;
   } catch (err) {
+    // 대부분 QuotaExceededError다. LocalStorage 한도(보통 5MB)에 닿으면
+    // 이후 변경이 전혀 저장되지 않는데, 조용히 넘기면 사용자는 다음 진입에서
+    // 마지막으로 성공한 시점으로 되돌아간 걸 보게 된다.
     console.warn("[colorhunt] LocalStorage write failed:", err);
+    onSaveError?.(err);
+    return false;
   }
 }
 

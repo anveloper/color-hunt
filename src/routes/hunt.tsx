@@ -7,6 +7,7 @@ import {
   loadState,
   markDecorateHintSeen,
   saveState,
+  setSaveErrorHandler,
 } from "../lib/storage";
 import { composeAndDownload } from "../lib/compose";
 import { resizeToDataUrl } from "../lib/image";
@@ -132,6 +133,18 @@ export default function Hunt() {
     const id = window.setTimeout(() => setToast(null), 2800);
     return () => window.clearTimeout(id);
   }, [toast]);
+
+  // 저장 실패는 한 번만 알린다. 상태가 바뀔 때마다 토스트가 반복되면
+  // 오히려 앱을 못 쓴다.
+  const saveErrorNotified = useRef(false);
+  useEffect(() => {
+    setSaveErrorHandler(() => {
+      if (saveErrorNotified.current) return;
+      saveErrorNotified.current = true;
+      setToast("저장 공간이 가득 차 더 담기 어려워요. 저장한 뒤 지우고 다시 시작해 주세요");
+    });
+    return () => setSaveErrorHandler(null);
+  }, []);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -263,6 +276,7 @@ export default function Hunt() {
       await composeAndDownload(state, aspect, snapshot, screenWidth);
     } catch (err) {
       console.error("[colorhunt] download failed:", err);
+      setToast("저장하지 못했어요. 잠시 후 다시 시도해 주세요");
     } finally {
       setBusy(false);
     }
