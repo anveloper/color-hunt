@@ -32,7 +32,10 @@ body,
 html body {
   font-family: var(--font-hand);
   color: var(--color-ink);
-  background-color: #1f1d1b;
+  /* 모바일에서는 .app-frame이 화면을 꽉 채우므로 종이색을 그대로 둔다.
+     다크를 여기 두면 dvh 변동이나 오버스크롤 순간에 어두운 띠가 드러나고,
+     앱인토스 심사의 "라이트 모드" 항목에도 걸린다. */
+  background-color: var(--color-paper);
 }
 
 #root {
@@ -53,8 +56,12 @@ html body {
   background-position: 0 0, 1px 2px;
 }
 
-/* PC: 9:16 세로 프레임 가운데 배치 */
+/* PC: 9:16 세로 프레임 가운데 배치 — 프레임 바깥만 어둡게 */
 @media (min-width: 769px) {
+  html body {
+    background-color: #1f1d1b;
+  }
+
   .app-frame {
     width: min(calc(100dvw - 48px), calc((100dvh - 48px) * 9 / 16));
     height: min(calc(100dvh - 48px), calc((100dvw - 48px) * 16 / 9));
