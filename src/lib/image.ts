@@ -1,4 +1,14 @@
-const MAX_DIM = 1200;
+/**
+ * 업로드 사진의 긴 변 상한.
+ *
+ * 저장 결과물이 짧은 변 1080 기준(compose.ts의 BASE_DIM)이라 원본을 그보다
+ * 크게 들고 있을 이유가 약하다. LocalStorage는 사진을 base64로 담는데
+ * 실측 예산이 약 5.0M 문자라, 1200에서는 12컷 최악 조합이 한도에 닿는다.
+ * 1080으로 낮추면 장당 중앙값이 216KB -> 180KB가 되어 여유가 생긴다.
+ *
+ * 셀을 크게 확대해 편집하는 경우에만 화질 차이가 드러난다.
+ */
+const MAX_DIM = 1080;
 const QUALITY = 0.85;
 
 const HEIC_MIME = /^image\/(heic|heif)/i;
