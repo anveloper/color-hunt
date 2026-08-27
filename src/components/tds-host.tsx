@@ -38,7 +38,9 @@ function DialogBridge() {
           leftButton: o.leftLabel,
           rightButton: o.rightLabel,
           children: o.description ? (
-            <p className="px-1 pb-2 text-base leading-relaxed text-ink/70">
+            // 바텀시트 children은 여백이 없이 들어온다. 헤더와 줄을 맞추려면
+            // TDS 기본 좌우 여백(24px)을 본문이 직접 가져야 한다.
+            <p className="px-6 pb-4 text-base leading-relaxed text-ink/70">
               {o.description}
             </p>
           ) : undefined,
